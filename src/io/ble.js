@@ -1,5 +1,6 @@
 const JSONRPCWebSocket = require('../util/jsonrpc-web-socket');
-const ScratchLinkWebSocket = 'wss://device-manager.scratch.mit.edu:20110/scratch/ble';
+//const ScratchLinkWebSocket = 'wss://device-manager.scratch.mit.edu:20110/scratch/ble';
+const ScratchLinkWebSocket = 'ws://localhost:8080/scratch/ble';
 // const log = require('../util/log');
 
 class BLE extends JSONRPCWebSocket {
