@@ -1,18 +1,18 @@
 const JSONRPCWebSocket = require('../util/jsonrpc-web-socket');
-const ScratchLinkWebSocket = 'wss://device-manager.scratch.mit.edu:20110/scratch/ble';
+const ScratchLinkWebSocket = 'ws://localhost:8080/scratch/xbridge';
 // const log = require('../util/log');
 
-class BLE extends JSONRPCWebSocket {
+class XBridge extends JSONRPCWebSocket {
 
     /**
-     * A BLE peripheral socket object.  It handles connecting, over web sockets, to
-     * BLE peripherals, and reading and writing data to them.
+     * A XBridge peripheral socket object.  It handles connecting, over web sockets, to
+     * XBridge peripherals, and reading and writing data to them.
      * @param {Runtime} runtime - the Runtime for sending/receiving GUI update events.
      * @param {string} extensionId - the id of the extension using this socket.
      * @param {object} peripheralOptions - the list of options for peripheral discovery.
      * @param {object} connectCallback - a callback for connection.
      */
-    constructor (runtime, extensionId, peripheralOptions, connectCallback) {
+    constructor (runtime, extensionId, peripheralOptions, connectCallback, didReceiveCallback) {
         const ws = new WebSocket(ScratchLinkWebSocket);
         super(ws);
 
@@ -24,6 +24,7 @@ class BLE extends JSONRPCWebSocket {
         this._availablePeripherals = {};
         this._connectCallback = connectCallback;
         this._connected = false;
+        this._didReceiveCallback = didReceiveCallback;
         this._characteristicDidChangeCallback = null;
         this._extensionId = extensionId;
         this._peripheralOptions = peripheralOptions;
@@ -103,47 +104,8 @@ class BLE extends JSONRPCWebSocket {
             });
     }
 
-    /**
-     * Read from the specified ble service.
-     * @param {number} serviceId - the ble service to read.
-     * @param {number} characteristicId - the ble characteristic to read.
-     * @param {boolean} optStartNotifications - whether to start receiving characteristic change notifications.
-     * @param {object} onCharacteristicChanged - callback for characteristic change notifications.
-     * @return {Promise} - a promise from the remote read request.
-     */
-    read (serviceId, characteristicId, optStartNotifications = false, onCharacteristicChanged = null) {
-        const params = {
-            serviceId,
-            characteristicId
-        };
-        if (optStartNotifications) {
-            params.startNotifications = true;
-        }
-        this._characteristicDidChangeCallback = onCharacteristicChanged;
-        return this.sendRemoteRequest('read', params)
-            .catch(e => {
-                this._sendDisconnectError(e);
-            });
-    }
-
-    /**
-     * Write data to the specified ble service.
-     * @param {number} serviceId - the ble service to write.
-     * @param {number} characteristicId - the ble characteristic to write.
-     * @param {string} message - the message to send.
-     * @param {string} encoding - the message encoding type.
-     * @param {boolean} withResponse - if true, resolve after peripheral's response.
-     * @return {Promise} - a promise from the remote send request.
-     */
-    write (serviceId, characteristicId, message, encoding = null, withResponse = null) {
-        const params = {serviceId, characteristicId, message};
-        if (encoding) {
-            params.encoding = encoding;
-        }
-        if (withResponse) {
-            params.withResponse = withResponse;
-        }
-        return this.sendRemoteRequest('write', params)
+    rpc (method, params) {
+        return this.sendRemoteRequest(method, params)
             .catch(e => {
                 this._sendDisconnectError(e);
             });
@@ -167,16 +129,18 @@ class BLE extends JSONRPCWebSocket {
                 window.clearTimeout(this._discoverTimeoutID);
             }
             break;
-        case 'characteristicDidChange':
-            this._characteristicDidChangeCallback(params.message);
-            break;
         case 'ping':
             return 42;
+        default:
+            if(this._didReceiveCallback) {
+                return this._didReceiveCallback(method, params);
+            }
+            break;
         }
     }
 
     _sendRequestError (/* e */) {
-        // log.error(`BLE error: ${JSON.stringify(e)}`);
+        // log.error(`XBridge error: ${JSON.stringify(e)}`);
 
         this._runtime.emit(this._runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
             message: `Scratch lost connection to`,
@@ -185,7 +149,7 @@ class BLE extends JSONRPCWebSocket {
     }
 
     _sendDisconnectError (/* e */) {
-        // log.error(`BLE error: ${JSON.stringify(e)}`);
+        // log.error(`XBridge error: ${JSON.stringify(e)}`);
 
         if (!this._connected) return;
 
@@ -205,4 +169,4 @@ class BLE extends JSONRPCWebSocket {
     }
 }
 
-module.exports = BLE;
+module.exports = XBridge;
