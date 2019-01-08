@@ -23,12 +23,12 @@ const XBridgeTimeout = 4500; // TODO: might need tweaking based on how long the 
 const XBridgeSendInterval = 100;
 
 /**
- * Manage communication with a XBlockly peripheral over a Scrath Link client socket.
+ * Manage communication with a XKitHqrover peripheral over a Scrath Link client socket.
  */
-class XBlockly {
+class XKitHqrover {
 
     /**
-     * Construct a XBlockly communication object.
+     * Construct a XKitHqrover communication object.
      * @param {Runtime} runtime - the Scratch 3.0 runtime
      * @param {string} extensionId - the id of the extension
      */
@@ -164,7 +164,7 @@ class XBlockly {
     }*/
 
     XButton_isPressed(port) {
-        const block = this.findOrConstructBlock('XButton', XButtonModels.MODEL1, port);
+        const block = this.findOrConstructBlock('XButton', '', port);
         if (block) {
             return block.isPressed;
         } 
@@ -196,18 +196,54 @@ class XBlockly {
         }
     }
     
-    /*HQRCarDriver_showNumber(sgd, num) {
-        const block = this.findOrConstructBlock('XButton', XButtonModels.MODEL1, port);
-        const server = this.findOrConstructServer('XSegDisplay', sgd);
+    HQRCarDriver_forward(speed) {
+        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
         if (server) {
             const params = {
                 type: server.type,
                 ports: server.ports,
-                num
+                speed
             };
-            this.rpc("XSegDisplay_showNumber", params);
+            this.rpc("HQRCarDriver_forward", params);
         }
-    }*/
+    }
+
+    HQRCarDriver_backward(speed) {
+        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                speed
+            };
+            this.rpc("HQRCarDriver_backward", params);
+        }
+    }
+
+    HQRCarDriver_turn(action, speed, angle) {
+        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                action,
+                speed,
+                angle
+            };
+            this.rpc("HQRCarDriver_turn", params);
+        }
+    }
+
+    HQRCarDriver_stop() {
+        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports
+            };
+            this.rpc("HQRCarDriver_stop", params);
+        }
+    }
 
     /**
      * Called by the runtime when user wants to scan for a peripheral.
@@ -234,7 +270,7 @@ class XBlockly {
     }
 
     /**
-     * Disconnect from the xblockly.
+     * Disconnect from the xkithqrover.
      */
     disconnect () {
         this._blocks = {};
@@ -246,8 +282,8 @@ class XBlockly {
     }
 
     /**
-     * Return true if connected to the xblockly.
-     * @return {boolean} - whether the xblockly is connected.
+     * Return true if connected to the xkithqrover.
+     * @return {boolean} - whether the xkithqrover is connected.
      */
     isConnected () {
         let connected = false;
@@ -322,23 +358,13 @@ class XBlockly {
 }
 
 /**
- * Enum for XBlockly.
+ * Enum for XKitHqrover.
  */
-const XBlocklyPorts = {
+const XKitHqroverPorts = {
     PORT1: '1',
     PORT2: '2',
     PORT3: '3',
     PORT4: '4'
-};
-
-const XBlocklyTypes = {
-    TYPE1: 'XButton',
-    TYPE2: 'XSegDisplay'
-};
-
-const XBlocklyModels = {
-    MODEL1: 'BTN3200',
-    MODEL2: 'SGD4300'
 };
 
 /**
@@ -347,10 +373,6 @@ const XBlocklyModels = {
 
 const XButtonPorts = {
     PORT1: 'BTN'
-};
-
-const XButtonModels = {
-    MODEL1: 'BTN3200'
 };
 
 /**
@@ -362,22 +384,47 @@ const XSegDisplayModels = {
 };
 
 /**
- * Scratch 3.0 blocks to interact with a XBlockly peripheral.
+ * Enum for XDualDCMotor.
  */
-class Scratch3XBlocklyBlocks {
+
+const XDualDCMotorPorts = {
+    PORT1: 'DDM'
+};
+
+/**
+ * Enum for HQRCarDriver.
+ */
+
+const HQRCarDriverDirs = {
+    FORWARD: 0,
+    BACKWARD: 1
+};
+
+const HQRCarDriverActions = {
+    LEFTFORWARD: 0,
+    RIGHTFORWARD: 1,
+    RIGHTBACKWARD: 2,
+    LEFTBACKWARD: 3
+};
+
+
+/**
+ * Scratch 3.0 blocks to interact with a XKitHqrover peripheral.
+ */
+class Scratch3XKitHqroverBlocks {
 
     /**
      * @return {string} - the name of this extension.
      */
     static get EXTENSION_NAME () {
-        return 'xblockly';
+        return 'xkithqrover';
     }
 
     /**
      * @return {string} - the ID of this extension.
      */
     static get EXTENSION_ID () {
-        return 'xblockly';
+        return 'xkithqrover';
     }
 
     /**
@@ -386,42 +433,20 @@ class Scratch3XBlocklyBlocks {
     get PORTS_MENU () {
         return [
             {
-                text: XBlocklyPorts.PORT1,
-                value: XBlocklyPorts.PORT1
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
             },
             {
-                text: XBlocklyPorts.PORT2,
-                value: XBlocklyPorts.PORT2
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
             },
             {
-                text: XBlocklyPorts.PORT3,
-                value: XBlocklyPorts.PORT3
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
             },
             {
-                text: XBlocklyPorts.PORT4,
-                value: XBlocklyPorts.PORT4
-            }
-        ];
-    }
-    
-    get TYPES_MENU () {
-        return [
-            {
-                text: 'XButton',
-                value: XBlocklyTypes.TYPE1
-            },
-            {
-                text: 'XSegDisplay',
-                value: XBlocklyTypes.TYPE2
-            }
-        ];
-    }
-
-    get MODELS_MENU () {
-        return [
-            {
-                text: XBlocklyModels.MODEL1,
-                value: XBlocklyModels.MODEL1
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
             }
         ];
     }
@@ -429,33 +454,73 @@ class Scratch3XBlocklyBlocks {
     /**
      * @return {array} - text and values for each buttons menu element
      */
-    get BUTTONS_MENU () {
+    get XBUTTON_PORTS_MENU () {
         return [
             {
                 text: XButtonPorts.PORT1,
                 value: XButtonPorts.PORT1
             },
             {
-                text: XBlocklyPorts.PORT1,
-                value: XBlocklyPorts.PORT1
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
             },
             {
-                text: XBlocklyPorts.PORT2,
-                value: XBlocklyPorts.PORT2
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
             },
             {
-                text: XBlocklyPorts.PORT3,
-                value: XBlocklyPorts.PORT3
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
             },
             {
-                text: XBlocklyPorts.PORT4,
-                value: XBlocklyPorts.PORT4
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
             }
         ];
     }
 
     /**
-     * Construct a set of XBlockly blocks.
+     * @return {array} - text and values for each hqrcardriver dir menu element
+     */
+    get HQRCARDRIVER_DIRS_MENU () {
+        return [
+            {
+                text: 'forward',
+                value: HQRCarDriverDirs.FORWARD
+            },
+            {
+                text: 'backward',
+                value: HQRCarDriverDirs.BACKWARD
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each hqrcardriver dir menu element
+     */
+    get HQRCARDRIVER_ACTIONS_MENU () {
+        return [
+            {
+                text: 'leftforward',
+                value: HQRCarDriverActions.LEFTFORWARD
+            },
+            {
+                text: 'rightforward',
+                value: HQRCarDriverActions.RIGHTFORWARD
+            },
+            {
+                text: 'leftbackward',
+                value: HQRCarDriverActions.RIGHTBACKWARD
+            },
+            {
+                text: 'rightbackward',
+                value: HQRCarDriverActions.LEFTBACKWARD
+            }
+        ];
+    }
+
+    /**
+     * Construct a set of XKitHqrover blocks.
      * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
     constructor (runtime) {
@@ -465,8 +530,8 @@ class Scratch3XBlocklyBlocks {
          */
         this.runtime = runtime;
 
-        // Create a new XBlockly peripheral instance
-        this._peripheral = new XBlockly(this.runtime, Scratch3XBlocklyBlocks.EXTENSION_ID);
+        // Create a new XKitHqrover peripheral instance
+        this._peripheral = new XKitHqrover(this.runtime, Scratch3XKitHqroverBlocks.EXTENSION_ID);
     }
 
     /**
@@ -474,15 +539,15 @@ class Scratch3XBlocklyBlocks {
      */
     getInfo () {
         return {
-            id: Scratch3XBlocklyBlocks.EXTENSION_ID,
-            name: Scratch3XBlocklyBlocks.EXTENSION_NAME,
+            id: Scratch3XKitHqroverBlocks.EXTENSION_ID,
+            name: Scratch3XKitHqroverBlocks.EXTENSION_NAME,
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [
                 /*{
                     opcode: 'constructBlock',
                     text: formatMessage({
-                        id: 'xblockly.constructBlock',
+                        id: 'xkithqrover.constructBlock',
                         default: '[PORT] connect block [TYPE] model [MODEL]',
                         description: 'connect type and model block with port'
                     }),
@@ -491,49 +556,48 @@ class Scratch3XBlocklyBlocks {
                         PORT: {
                             type: ArgumentType.STRING,
                             menu: 'ports',
-                            defaultValue: XBlocklyPorts.PORT1
+                            defaultValue: XKitHqroverPorts.PORT1
                         },
                         TYPE: {
                             type: ArgumentType.STRING,
                             menu: 'types',
-                            defaultValue: XBlocklyTypes.TYPE1
+                            defaultValue: XKitHqroverTypes.TYPE1
                         },
                         MODEL: {
                             type: ArgumentType.STRING,
                             menu: 'models',
-                            defaultValue: XBlocklyModels.MODEL1
+                            defaultValue: XKitHqroverModels.MODEL1
                         }
                     }
-                },
-                '---',
+                }*/,
                 {
-                    opcode: 'XButton_registerEvent',
+                    opcode: 'XButton_whenPressed',
                     text: formatMessage({
-                        id: 'xblockly.XButton_registerEvent',
-                        default: 'register [PORT] button pressed event',
-                        description: ''
+                        id: 'xkithqrover.XButton_whenPressed',
+                        default: 'when [BTN] button pressed',
+                        description: 'when the selected button on the hqrover is pressed'
                     }),
-                    blockType: BlockType.COMMAND,
+                    blockType: BlockType.HAT,
                     arguments: {
-                        PORT: {
+                        BTN: {
                             type: ArgumentType.STRING,
-                            menu: 'buttons',
+                            menu: 'xbutton_ports',
                             defaultValue: XButtonPorts.PORT1
                         }
                     }
-                },*/
+                },
                 {
                     opcode: 'XButton_isPressed',
                     text: formatMessage({
-                        id: 'xblockly.XButton_isPressed',
+                        id: 'xkithqrover.XButton_isPressed',
                         default: '[PORT] button pressed?',
-                        description: 'is the selected button on the xblockly pressed?'
+                        description: 'is the selected button on the hqrover pressed?'
                     }),
                     blockType: BlockType.BOOLEAN,
                     arguments: {
                         PORT: {
                             type: ArgumentType.STRING,
-                            menu: 'buttons',
+                            menu: 'xbutton_ports',
                             defaultValue: XButtonPorts.PORT1
                         }
                     }
@@ -542,7 +606,7 @@ class Scratch3XBlocklyBlocks {
                 {
                     opcode: 'XSegDisplay_showNumber',
                     text: formatMessage({
-                        id: 'xblockly.XSegDisplay_showNumber',
+                        id: 'xkithqrover.XSegDisplay_showNumber',
                         default: 'SegDisplay[PORT] show number [NUM]',
                         description: ''
                     }),
@@ -551,7 +615,7 @@ class Scratch3XBlocklyBlocks {
                         PORT: {
                             type: ArgumentType.STRING,
                             menu: 'ports',
-                            defaultValue: XBlocklyPorts.PORT1
+                            defaultValue: XKitHqroverPorts.PORT1
                         },
                         NUM: {
                             type: ArgumentType.NUMBER,
@@ -562,7 +626,7 @@ class Scratch3XBlocklyBlocks {
                 {
                     opcode: 'XSegDisplay_clear',
                     text: formatMessage({
-                        id: 'xblockly.XSegDisplay_clear',
+                        id: 'xkithqrover.XSegDisplay_clear',
                         default: 'SegDisplay[PORT] clear',
                         description: ''
                     }),
@@ -571,16 +635,72 @@ class Scratch3XBlocklyBlocks {
                         PORT: {
                             type: ArgumentType.STRING,
                             menu: 'ports',
-                            defaultValue: XBlocklyPorts.PORT1
+                            defaultValue: XKitHqroverPorts.PORT1
                         }
+                    }
+                },
+                '---',
+                {
+                    opcode: 'HQRCarDriver_move',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRCarDriver_move',
+                        default: 'Car [DIR] speed[SPEED]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        DIR: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'hqrcardriver_dirs',
+                            defaultValue: HQRCarDriverDirs.FORWARD
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 25
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRCarDriver_turn',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRCarDriver_turn',
+                        default: 'Car [ACTION] speed[SPEED] angle[ANGLE]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ACTION: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'hqrcardriver_actions',
+                            defaultValue: HQRCarDriverActions.LEFTFORWARD
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 25
+                        },
+                        ANGLE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 15
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRCarDriver_stop',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRCarDriver_stop',
+                        default: 'Car stop',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
                     }
                 }
             ],
             menus: {
                 ports: this.PORTS_MENU,
-                types: this.TYPES_MENU,
-                models: this.MODELS_MENU,
-                buttons: this.BUTTONS_MENU
+                xbutton_ports: this.XBUTTON_PORTS_MENU,
+                hqrcardriver_dirs: this.HQRCARDRIVER_DIRS_MENU,
+                hqrcardriver_actions: this.HQRCARDRIVER_ACTIONS_MENU
             }
         };
     }
@@ -596,17 +716,11 @@ class Scratch3XBlocklyBlocks {
                 }, XBridgeSendInterval);
             });
         } 
-    }
-
-    XButton_registerEvent (args) {
-        this._peripheral.XButton_registerEvent(args.PORT);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
     }*/
+
+    XButton_whenPressed (args) {
+        return this._peripheral.XButton_isPressed(args.PORT);
+    }
 
     XButton_isPressed (args) {
         return this._peripheral.XButton_isPressed(args.PORT);
@@ -631,6 +745,40 @@ class Scratch3XBlocklyBlocks {
             }, XBridgeSendInterval);
         });
     }
+
+    HQRCarDriver_move (args) {
+        if(args.DIR==HQRCarDriverDirs.FORWARD) {
+            this._peripheral.HQRCarDriver_forward(args.SPEED);
+        } else {
+            this._peripheral.HQRCarDriver_backward(args.SPEED);
+        }
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRCarDriver_turn (args) {
+        this._peripheral.HQRCarDriver_turn(args.ACTION, args.SPEED, args.ANGLE);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRCarDriver_stop (args) {
+        this._peripheral.HQRCarDriver_stop();
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
 }
 
-module.exports = Scratch3XBlocklyBlocks;
+module.exports = Scratch3XKitHqroverBlocks;
