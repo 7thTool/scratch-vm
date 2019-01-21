@@ -22,6 +22,10 @@ const XBridgeTimeout = 4500; // TODO: might need tweaking based on how long the 
  */
 const XBridgeSendInterval = 100;
 
+const BYTE_INVALID_VALUE = 0xff;
+const SHORT_INVALID_VALUE = 0xffff;
+const FLOAT_INVALID_VALUE = 999;
+
 /**
  * Manage communication with a XKitHqrover peripheral over a Scrath Link client socket.
  */
@@ -87,27 +91,71 @@ class XKitHqrover {
     }
 
     constructBlock(type, model, port) {
-        const block = {
+        var block = {
             type,
             model,
             port
         };
+        switch (type) {
+            case 'XButton': {
+                block.status = BYTE_INVALID_VALUE;
+            }
+            break;
+        case 'XIRReceiver': {
+                block.key = BYTE_INVALID_VALUE;
+            }
+            break;
+        case 'XIRTracking': {
+                block.status = BYTE_INVALID_VALUE;
+            }
+            break;
+        case 'XLightSensor': {
+                block.luminance = BYTE_INVALID_VALUE;
+            }
+            break;
+        case 'XSoundSensor': {
+                block.volume = BYTE_INVALID_VALUE;
+            }
+            break;
+        case 'XUltrasonic': {
+                block.distance = FLOAT_INVALID_VALUE;
+            }
+            break;
+        }
         this._blocks[port] = block;
-        //放到服务端构建，即调用具体模块方法时传模块构建模块所需参数到服务端
-        // if(!this.isOnBoardBlock(port)) { //非板载模块需要主动构建
-        //     this.rpc('constructBlock', block
-        //     , (result) => {
-        //         /*switch(type) 
-        //         {
-        //         case 'XButton':
-        //         {
-        //             this.rpc('XButton_registerEvent', block);
-        //         }
-        //         break;
-        //         }*/
-        //     }
-        //     );
-        // }
+        const params = {
+            type,
+            model,
+            port
+        };
+        this.rpc("constructBlock", params, (result) => {
+            switch (type) {
+                case 'XButton': {
+                    block.status = result.status;
+                }
+                break;
+            case 'XIRReceiver': {
+                    block.key = params.key;
+                }
+                break;
+            case 'XIRTracking': {
+                    block.status = params.status;
+                }
+                break;
+            case 'XLightSensor': {
+                    block.luminance = params.luminance;
+                }
+                break;
+            case 'XSoundSensor': {
+                    block.volume = params.volume;
+                }
+                break;
+            case 'XUltrasonic': {
+                    block.distance = params.distance;
+                }
+                break;
+            }
+        });
         return block;
     }
 
@@ -125,11 +173,18 @@ class XKitHqrover {
 
     constructServer(type, ports) {
         var key = type + ',' + ports;
-        const server = {
+        var server = {
             type,
             ports
         };
         this._services[key] = server;
+        const params = {
+            type,
+            ports
+        };
+        this.rpc("constructServer", params, (result) => {
+            //
+        });
         return server;
     }
     
@@ -146,29 +201,321 @@ class XKitHqrover {
         } 
         return server;
     }
-
-    /*XButton_registerEvent(port) {
-        var block = this.findOrConstructBlock('XButton', '', port);
+    
+    HQRCarDriver_forward(speed) {
+        const block = this.findOrConstructBlock('XDualDCMotor', '', XDualDCMotorPorts.PORT1);
         if (block) {
-            if(!block.isRegister) {
-                block.isRegister = true;
-                block.isPressed = false;
+            const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+            if (server) {
                 const params = {
-                    type: block.type,
-                    model: block.model,
-                    port: block.port
+                    type: server.type,
+                    ports: server.ports,
+                    ddm_model: block.model,
+                    ddm_port: block.port,
+                    speed
                 };
-                this.rpc("XButton_registerEvent", params);
+                this.send("HQRCarDriver_forward", params);
             }
         }
-    }*/
+    }
+
+    HQRCarDriver_backward(speed) {
+        const block = this.findOrConstructBlock('XDualDCMotor', '', XDualDCMotorPorts.PORT1);
+        if (block) {
+            const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    ddm_model: block.model,
+                    ddm_port: block.port,
+                    speed
+                };
+                this.send("HQRCarDriver_backward", params);
+            }
+        }
+    }
+
+    HQRCarDriver_turn(action, speed, angle) {
+        const block = this.findOrConstructBlock('XDualDCMotor', '', XDualDCMotorPorts.PORT1);
+        if (block) {
+            const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    ddm_model: block.model,
+                    ddm_port: block.port,
+                    action,
+                    speed,
+                    angle
+                };
+                this.send("HQRCarDriver_turn", params);
+            }
+        }
+    }
+
+    HQRCarDriver_stop() {
+        const block = this.findOrConstructBlock('XDualDCMotor', '', XDualDCMotorPorts.PORT1);
+        if (block) {
+            const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    ddm_model: block.model,
+                    ddm_port: block.port
+                };
+                this.send("HQRCarDriver_stop", params);
+            }
+        }
+    }
+
+    HQRCarDriver_autoLineTracking(irt_port,speed) {
+        const block = this.findOrConstructBlock('XDualDCMotor', '', XDualDCMotorPorts.PORT1);
+        if (block) {
+            const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+            if (server) {
+                const irt_block = this.findOrConstructBlock('XIRTracking', XIRTrackingModels.MODEL1, irt_port);
+                if (irt_block) {
+                    const params = {
+                        type: server.type,
+                        ports: server.ports,
+                        ddm_model: block.model,
+                        ddm_port: block.port,
+                        irt_model: block.model,
+                        irt_port,
+                        speed
+                    };
+                    this.send("HQRCarDriver_autoLineTracking", params);
+                }
+            }
+        }
+    }
+
+    HQRCarDriver_autoObstacleAvoidance(uls_port,speed) {
+        const block = this.findOrConstructBlock('XDualDCMotor', '', XDualDCMotorPorts.PORT1);
+        if (block) {
+            const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
+            if (server) {
+                const uls_block = this.findOrConstructBlock('XUltrasonic', XUltrasonicModels.MODEL1, uls_port);
+                if (uls_block) {
+                    const params = {
+                        type: server.type,
+                        ports: server.ports,
+                        ddm_model: block.model,
+                        ddm_port: block.port,
+                        uls_model: uls_block.model,
+                        uls_port,
+                        speed
+                    };
+                    this.send("HQRCarDriver_autoObstacleAvoidance", params);
+                }
+            }
+        }
+    }
+
+    XSoundSensor_getVolume (port) {
+        const block = this.findOrConstructBlock('XButton', XSoundSensorModels.MODEL1, port);
+        if (block) {
+            return block.volume;
+        } 
+        return 0;
+    }
+
+    XLightSensor_getLuminance (port) {
+        const block = this.findOrConstructBlock('XButton', XLightSensorModels.MODEL1, port);
+        if (block) {
+            return block.luminance;
+        } 
+        return 0;
+    }
 
     XButton_isPressed(port) {
         const block = this.findOrConstructBlock('XButton', '', port);
         if (block) {
-            return block.isPressed;
+            return block.status == 1;
         } 
         return false;
+    }
+    
+    XIRTracking_getStatus(port) {
+        const block = this.findOrConstructBlock('XIRTracking', XIRTrackingModels.MODEL1, port);
+        if (block) {
+            // const params = {
+            //     type: block.type,
+            //     model: XIRTrackingModels.MODEL1,
+            //     port: block.port
+            // };
+            // this.send("XIRTracking_getStatus", params);
+            return block.status;
+        } 
+        return false;
+    }
+    
+    XUltrasonic_getDistance(port) {
+        const block = this.findOrConstructBlock('XUltrasonic', XUltrasonicModels.MODEL1, port);
+        if (block) {
+            // const params = {
+            //     type: block.type,
+            //     model: XUltrasonicModels.MODEL1,
+            //     port: block.port
+            // };
+            // this.send("XUltrasonic_getDistance", params);
+            return block.distance;
+        } 
+        return false;
+    }
+
+    XIRAvoiding_getStatus(port) {
+        const block = this.findOrConstructBlock('XIRAvoiding', XIRAvoidingModels.MODEL1, port);
+        if (block) {
+            // const params = {
+            //     type: block.type,
+            //     model: XIRAvoidingModels.MODEL1,
+            //     port: block.port
+            // };
+            // this.send("XIRAvoiding_getStatus", params);
+            return block.status;
+        } 
+        return false;
+    }
+
+    HQRLightShow_showColor (rgb_port, index, red, green, blue) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                    index,
+                    red,
+                    green,
+                    blue,
+                    clearOthers: true
+                };
+                this.send("HQRLightShow_showColor", params);
+            }
+        }
+    }
+
+    HQRLightShow_showBreath (rgb_port, index, speed, red, green, blue) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                    index,
+                    speed,
+                    red,
+                    green,
+                    blue
+                };
+                this.send("HQRLightShow_showBreath", params);
+            }
+        }
+    }
+
+    HQRLightShow_showMeteor (rgb_port, speed, red, green, blue) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                    speed,
+                    red,
+                    green,
+                    blue
+                };
+                this.send("HQRLightShow_showMeteor", params);
+            }
+        }
+    }
+
+    HQRLightShow_clear (rgb_port) {
+        const block = this.findOrConstructBlock('XRGBLed', XRGBLedModels.MODEL1, rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                };
+                this.send("HQRLightShow_clear", params);
+            }
+        }
+    }
+
+    HQRAudioPlayer_setNoteParameter (port,beatTime) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                beatTime
+            };
+            this.send("HQRAudioPlayer_setNoteParameter", params); 
+        }
+    }
+
+    HQRAudioPlayer_playNote (port, note) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                note
+            };
+            this.send("HQRAudioPlayer_playNote", params); 
+        }
+    }
+
+    HQRAudioPlayer_playMusic (port, music) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                music
+            };
+            this.send("HQRAudioPlayer_playMusic", params); 
+        }
+    }
+
+    HQRAudioPlayer_playSound (port, sound) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                sound
+            };
+            this.send("HQRAudioPlayer_playSound", params); 
+        }
+    }
+
+    HQRAudioPlayer_stop (port) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports
+            };
+            this.send("HQRAudioPlayer_stop", params); 
+        }
     }
     
     XSegDisplay_showNumber(port, num) {
@@ -176,11 +523,53 @@ class XKitHqrover {
         if (block) {
             const params = {
                 type: block.type,
-                model: XSegDisplayModels.MODEL1,
+                model: block.model,
                 port: block.port,
                 num
             };
-            this.rpc("XSegDisplay_showNumber", params);
+            this.send("XSegDisplay_showNumber", params);
+        }
+    }
+
+    XSegDisplay_showCharacter (port, index, char) {
+        const block = this.findOrConstructBlock('XSegDisplay', XSegDisplayModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                index,
+                char
+            };
+            this.send("XSegDisplay_showCharacter", params);
+        }
+    }
+
+    XSegDisplay_showSegment (port, index, seg) {
+        const block = this.findOrConstructBlock('XSegDisplay', XSegDisplayModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                index,
+                seg
+            };
+            this.send("XSegDisplay_showSegment", params);
+        }
+    }
+
+    XSegDisplay_clearSegment (port, index, seg) {
+        const block = this.findOrConstructBlock('XSegDisplay', XSegDisplayModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                index,
+                seg
+            };
+            this.send("XSegDisplay_clearSegment", params);
         }
     }
 
@@ -189,60 +578,194 @@ class XKitHqrover {
         if (block) {
             const params = {
                 type: block.type,
-                model: XSegDisplayModels.MODEL1,
+                model: block.model,
                 port: block.port
             };
-            this.rpc("XSegDisplay_clear", params);
+            this.send("XSegDisplay_clear", params);
         }
     }
     
-    HQRCarDriver_forward(speed) {
-        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
-        if (server) {
+    XVoiceBroadcast_reportObject (port, index, value) {
+        const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
+        if (block) {
             const params = {
-                type: server.type,
-                ports: server.ports,
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                index,
+                value
+            };
+            this.send("XVoiceBroadcast_reportObject", params);
+        }
+    }
+
+    XVoiceBroadcast_reportTime (port, hour, minute, second) {
+        const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                hour,
+                minute,
+                second
+            };
+            this.send("XVoiceBroadcast_reportTime", params);
+        }
+    }
+
+    XVoiceBroadcast_reportDate (port, year, month, day) {
+        const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                year,
+                month,
+                day
+            };
+            this.send("XVoiceBroadcast_reportDate", params);
+        }
+    }
+
+    XVoiceBroadcast_reportOperator (port, operator) {
+        const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                operator
+            };
+            this.send("XVoiceBroadcast_reportOperator", params);
+        }
+    }
+
+    XVoiceBroadcast_reportSond (port, index, value) {
+        const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                index,
+                value
+            };
+            this.send("XVoiceBroadcast_reportSound", params);
+        }
+    }
+
+    XVoiceBroadcast_stop (port) {
+        const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XVoiceBroadcast_stop", params);
+        }
+    }
+
+    XLEDMatrix_setEffect (port, effect, speed) {
+        const block = this.findOrConstructBlock('XLEDMatrix', XLEDMatrixModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                effect,
                 speed
             };
-            this.rpc("HQRCarDriver_forward", params);
+            this.send("XLEDMatrix_showNumber", params);
         }
     }
 
-    HQRCarDriver_backward(speed) {
-        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
-        if (server) {
+    XLEDMatrix_showNumber (port, num) {
+        const block = this.findOrConstructBlock('XLEDMatrix', XLEDMatrixModels.MODEL1, port);
+        if (block) {
             const params = {
-                type: server.type,
-                ports: server.ports,
-                speed
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                num
             };
-            this.rpc("HQRCarDriver_backward", params);
+            this.send("XLEDMatrix_showNumber", params);
         }
     }
 
-    HQRCarDriver_turn(action, speed, angle) {
-        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
-        if (server) {
+    XLEDMatrix_showNumberPair (port, A, B) {
+        const block = this.findOrConstructBlock('XLEDMatrix', XLEDMatrixModels.MODEL1, port);
+        if (block) {
             const params = {
-                type: server.type,
-                ports: server.ports,
-                action,
-                speed,
-                angle
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                A,
+                B
             };
-            this.rpc("HQRCarDriver_turn", params);
+            this.send("XLEDMatrix_showNumberPair", params);
         }
     }
 
-    HQRCarDriver_stop() {
-        const server = this.findOrConstructServer('HQRCarDriver', XDualDCMotorPorts.PORT1);
-        if (server) {
+    XLEDMatrix_showEmoticon (port, emot) {
+        const block = this.findOrConstructBlock('XLEDMatrix', XLEDMatrixModels.MODEL1, port);
+        if (block) {
             const params = {
-                type: server.type,
-                ports: server.ports
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                emot
             };
-            this.rpc("HQRCarDriver_stop", params);
+            this.send("XLEDMatrix_showEmoticon", params);
         }
+    }
+
+    XLEDMatrix_showFlag (port, flag) {
+        const block = this.findOrConstructBlock('XLEDMatrix', XLEDMatrixModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                flag
+            };
+            this.send("XLEDMatrix_showFlag", params);
+        }
+    }
+
+    XLEDMatrix_clear (port) {
+        const block = this.findOrConstructBlock('XLEDMatrix', XLEDMatrixModels.MODEL1, port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XLEDMatrix_clear", params);
+        }
+    }
+
+    XIRReceiver_enableLongPress (port, key) {
+        const block = this.findOrConstructBlock('XIRReceiver', '', port);
+        if (block) {
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port,
+                key
+            };
+            this.send("XIRReceiver_enableLongPress", params);
+        }
+    }
+
+    XIRReceiver_checkMessage (port, key) {
+        const block = this.findOrConstructBlock('XIRReceiver', '', port);
+        if (block) {
+            return block.key == key;
+        } 
+        return false;
     }
 
     /**
@@ -293,10 +816,15 @@ class XKitHqrover {
         return connected;
     }
 
-    rpc (method, params, callback) {
-        if (!this.isConnected()) return;
-        if (this._busy) return;
+    send (method, params) {
+        return this._xbridge.rpc(method, params);
+    }
 
+    isBusy() {
+        return this._busy;
+    }
+
+    rpc (method, params, callback) {
         // Set a busy flag so that while we are sending a message and waiting for
         // the response, additional messages are ignored.
         this._busy = true;
@@ -307,6 +835,9 @@ class XKitHqrover {
         // the busy flag after a while so that it is possible to try again later.
         this._busyTimeoutID = window.setTimeout(() => {
             this._busy = false;
+            if(callback) {
+                callback(null);
+            }
         }, 5000);
 
         this._xbridge.rpc(method, params).then(
@@ -318,12 +849,6 @@ class XKitHqrover {
                 }
             }
         );
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
     }
 
     /**
@@ -343,19 +868,75 @@ class XKitHqrover {
      */
     _onReceive (method, params) {
         switch (method) {
-        case 'XButton_notifyEvent':
-            {
+        case 'XButton_notifyEvent': {
                 block = this.findBlock(params.port);
-                //delete this._blocks[params.port];
                 if (block) {
-                    //block.isRegister = false;
-                    block.isPressed = true;
+                    block.status = params.status;
+                }
+            }
+            break;
+        case 'XIRReceiver_notifyEvent': {
+                block = this.findBlock(params.port);
+                if (block) {
+                    block.key = params.key;
+                }
+            }
+            break;
+        case 'XIRTracking_notifyEvent': {
+                block = this.findBlock(params.port);
+                if (block) {
+                    block.status = params.status;
+                }
+            }
+            break;
+        case 'XLightSensor_notifyEvent': {
+                block = this.findBlock(params.port);
+                if (block) {
+                    block.luminance = params.luminance;
+                }
+            }
+            break;
+        case 'XSoundSensor_notifyEvent': {
+                block = this.findBlock(params.port);
+                if (block) {
+                    block.volume = params.volume;
+                }
+            }
+            break;
+        case 'XUltrasonic_notifyEvent': {
+                block = this.findBlock(params.port);
+                if (block) {
+                    block.distance = params.distance;
                 }
             }
             break;
         }
     }
 }
+
+/**
+ * Enum for Compare.
+ */
+
+const EqualOper = {
+    EQUAL: 1,
+    NOT_EQUAL: 2
+};
+
+const CompareOper = {
+    GREATER: 1,
+    SMALLER: 2
+};
+
+/**
+ * Enum for Speed.
+ */
+
+const XKitHqroverSpeeds = {
+    SLOW: 0,
+    NORMAL: 1,
+    FAST: 2
+};
 
 /**
  * Enum for XKitHqrover.
@@ -368,6 +949,22 @@ const XKitHqroverPorts = {
 };
 
 /**
+ * Enum for XSoundSensor.
+ */
+
+const XSoundSensorPorts = {
+    PORT1: 'SND'
+};
+
+/**
+ * Enum for XLightSensor.
+ */
+
+const XLightSensorPorts = {
+    PORT1: 'LIG'
+};
+
+/**
  * Enum for XButton.
  */
 
@@ -376,19 +973,35 @@ const XButtonPorts = {
 };
 
 /**
- * Enum for XSegDisplay.
- */
-
-const XSegDisplayModels = {
-    MODEL1: 'SGD4300'
-};
-
-/**
  * Enum for XDualDCMotor.
  */
 
 const XDualDCMotorPorts = {
     PORT1: 'DDM'
+};
+
+/**
+ * Enum for XIRTracking.
+ */
+
+const XIRTrackingModels = {
+    MODEL1: 'IRT3320'
+};
+
+/**
+ * Enum for XUltrasonic.
+ */
+
+const XUltrasonicModels = {
+    MODEL1: 'ULS3600'
+};
+
+/**
+ * Enum for XIRAvoiding.
+ */
+
+const XIRAvoidingModels = {
+    MODEL1: 'IRA3200'
 };
 
 /**
@@ -403,10 +1016,126 @@ const HQRCarDriverDirs = {
 const HQRCarDriverActions = {
     LEFTFORWARD: 0,
     RIGHTFORWARD: 1,
-    RIGHTBACKWARD: 2,
-    LEFTBACKWARD: 3
+    LEFTBACKWARD: 2,
+    RIGHTBACKWARD: 3
 };
 
+/**
+ * Enum for XRGBLed.
+ */
+
+const XRGBLedPorts = {
+    PORT1: 'RGB'
+};
+
+/**
+ * Enum for XBuzzer.
+ */
+
+const XBuzzerPorts = {
+    PORT1: 'BUZ'
+};
+
+const XBuzzerModels = {
+    MODEL1: 'BUZ3200'
+};
+
+const XBuzzerMusics = {
+    HAPPYBIRTHDAY: 1,
+    LITTLESTAR: 2,
+    SONGOFJOY: 3,
+    LITTLEAPPLE: 4,
+    GOTOSCHOOL: 5
+};
+
+const XBuzzerSounds = {
+    AMBULANCE: 1,
+    FIRE_ENGINE: 2,
+    POLICE_WAGON: 3,
+    CAR_WHISTLING: 4
+};
+
+/**
+ * Enum for XSegDisplay.
+ */
+
+const XSegDisplayModels = {
+    MODEL1: 'SGD4300'
+};
+
+/**
+ * Enum for XVoiceBroadcast.
+ */
+
+const XVoiceBroadcastModels = {
+    MODEL1: 'VBC3300'
+};
+
+const XVoiceBroadcastObjects = {
+    VALUE: 0,
+    LIGHT: 1,
+    SOUND: 2,
+    TEMPERATURE: 3,
+    HUMIDITY: 4,
+    DISTANCE: 5,
+    SPEED: 6,
+    STATUS: 7
+};
+
+const XVoiceBroadcastOperators = {
+    ADD: 0,
+    MINUS: 1,
+    MULTI: 2,
+    DIVIDE: 3,
+    EQUAL: 4
+};
+
+/**
+ * Enum for XLEDMatrix.
+ */
+
+const XLEDMatrixModels = {
+    MODEL1: 'LMT3300'
+};
+
+const XLEDMatrixEffects = {
+    STATIC: 0,
+    ROLL_UP: 1,
+    ROLL_DWON: 2,
+    ROLL_LEFT: 3,
+    ROLL_RIGHT: 4,
+    FLICKER: 5
+};
+
+const XLEDMatrixEmots = {
+    COOL: 0,
+    SMILE: 1,
+    LAUGH: 2,
+    GRIEVANCE: 3,
+    ANGRY: 4,
+    ANGER: 5,
+    CRY: 6,
+    NAUGHTY: 7,
+    LOVE: 8
+};
+
+const XLEDMatrixFlags = {
+    X: 0,
+    RECTANGLE: 1,
+    TRIGANLE: 2,
+    CIRCLE: 3,
+    UP: 4,
+    DOWN: 5,
+    LEFT: 6,
+    RIGHT: 7,
+    STOP: 8,
+    FORWARD_AND_TURN_LEFT: 9,
+    FORWARD_AND_TURN_RIGHT: 10,
+    BACKWARD_AND_TURN_LEFT: 11,
+    BACKWARD_AND_TURN_RIGHT: 12,
+    CUP: 13,
+    BANNER: 14
+};
 
 /**
  * Scratch 3.0 blocks to interact with a XKitHqrover peripheral.
@@ -428,7 +1157,59 @@ class Scratch3XKitHqroverBlocks {
     }
 
     /**
-     * @return {array} - text and values for each buttons menu element
+     * @return {array} - text and values for each compare menu element
+     */
+    get COMPARE_OPER_MENU () {
+        return [
+            {
+                text: '>',
+                value: CompareOper.GREATER
+            },
+            {
+                text: '<',
+                value: CompareOper.OPER2
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each speeds menu element
+     */
+    get SPEEDS_MENU () {
+        return [
+            {
+                text: 'slow',
+                value: XKitHqroverSpeeds.SLOW
+            },
+            {
+                text: 'middle',
+                value: XKitHqroverSpeeds.NORMAL
+            },
+            {
+                text: 'fast',
+                value: XKitHqroverSpeeds.FAST
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each repeat menu element
+     */
+    get REPEATS_MENU () {
+        return [
+            {
+                text: 'not repeat',
+                value: false
+            },
+            {
+                text: 'repeat',
+                value: true
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each port menu element
      */
     get PORTS_MENU () {
         return [
@@ -452,7 +1233,63 @@ class Scratch3XKitHqroverBlocks {
     }
 
     /**
-     * @return {array} - text and values for each buttons menu element
+     * @return {array} - text and values for each soundsensor port menu element
+     */
+    get XSOUNDSENSOR_PORTS_MENU () {
+        return [
+            {
+                text: XSoundSensorPorts.PORT1,
+                value: XSoundSensorPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
+            },
+            {
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
+            },
+            {
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each lightsensor port menu element
+     */
+    get XLIGHTSENSOR_PORTS_MENU () {
+        return [
+            {
+                text: XLightSensorPorts.PORT1,
+                value: XLightSensorPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
+            },
+            {
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
+            },
+            {
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each button port menu element
      */
     get XBUTTON_PORTS_MENU () {
         return [
@@ -480,6 +1317,30 @@ class Scratch3XKitHqroverBlocks {
     }
 
     /**
+     * @return {array} - text and values for each irtracking's status menu element
+     */
+    get XIRTRACKING_STATUS_MENU () {
+        return [
+            {
+                text: '■■',
+                value: 3
+            },
+            {
+                text: '■□',
+                value: 1
+            },
+            {
+                text: '□■',
+                value: 2
+            },
+            {
+                text: '□□',
+                value: 0
+            }
+        ];
+    }
+    
+    /**
      * @return {array} - text and values for each hqrcardriver dir menu element
      */
     get HQRCARDRIVER_DIRS_MENU () {
@@ -501,20 +1362,660 @@ class Scratch3XKitHqroverBlocks {
     get HQRCARDRIVER_ACTIONS_MENU () {
         return [
             {
-                text: 'leftforward',
+                text: 'forward and turn left',
                 value: HQRCarDriverActions.LEFTFORWARD
             },
             {
-                text: 'rightforward',
+                text: 'forward and turn right',
                 value: HQRCarDriverActions.RIGHTFORWARD
             },
             {
-                text: 'leftbackward',
-                value: HQRCarDriverActions.RIGHTBACKWARD
+                text: 'backward and turn left',
+                value: HQRCarDriverActions.LEFTBACKWARD
             },
             {
-                text: 'rightbackward',
-                value: HQRCarDriverActions.LEFTBACKWARD
+                text: 'backward and turn right',
+                value: HQRCarDriverActions.RIGHTBACKWARD
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xsegdisplay segment menu element
+     */
+    get XSEGDISPLAY_INDEXS_MENU () {
+        return [
+            {
+                text: '1',
+                value: 1
+            },
+            {
+                text: '2',
+                value: 2
+            },
+            {
+                text: '3',
+                value: 3
+            },
+            {
+                text: '4',
+                value: 4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer port menu element
+     */
+    get XBUZZER_PORTS_MENU () {
+        return [
+            {
+                text: XBuzzerPorts.PORT1,
+                value: XBuzzerPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
+            },
+            {
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
+            },
+            {
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer note menu element
+     */
+    get XBUZZER_NOTES_MENU () {
+        return [
+            {
+                text: 'do',
+                value: 1
+            },
+            {
+                text: 're',
+                value: 2
+            },
+            {
+                text: 'me',
+                value: 3
+            },
+            {
+                text: 'fa',
+                value: 4
+            },
+            {
+                text: 'sol',
+                value: 5
+            },
+            {
+                text: 'la',
+                value: 6
+            },
+            {
+                text: 'si',
+                value: 7
+            },
+            {
+                text: '-',
+                value: 0
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer scale menu element
+     */
+    get XBUZZER_SCALES_MENU () {
+        return [
+            {
+                text: 'low',
+                value: 0
+            },
+            {
+                text: 'medium',
+                value: 1
+            },
+            {
+                text: 'high',
+                value: 2
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer tone menu element
+     */
+    get XBUZZER_TONES_MENU () {
+        return [
+            {
+                text: 'C',
+                value: 0
+            },
+            {
+                text: 'D',
+                value: 1
+            },
+            {
+                text: 'E',
+                value: 2
+            },
+            {
+                text: 'F',
+                value: 3
+            },
+            {
+                text: 'G',
+                value: 4
+            },
+            {
+                text: 'A',
+                value: 5
+            },
+            {
+                text: 'B',
+                value: 6
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer tone menu element
+     */
+    get XBUZZER_BEATS_MENU () {
+        return [
+            {
+                text: '1/8',
+                value: 1
+            },
+            {
+                text: '1/4',
+                value: 2
+            },
+            {
+                text: '1/2',
+                value: 4
+            },
+            {
+                text: '1',
+                value: 8
+            },
+            {
+                text: '2',
+                value: 16
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer music menu element
+     */
+    get XBUZZER_MUSICS_MENU () {
+        return [
+            {
+                text: 'happy brithday',
+                value: XBuzzerMusics.HAPPYBIRTHDAY
+            },
+            {
+                text: 'little star',
+                value: XBuzzerMusics.LITTLESTAR
+            },
+            {
+                text: 'song of joy',
+                value: XBuzzerMusics.SONGOFJOY
+            },
+            {
+                text: 'little apple',
+                value: XBuzzerMusics.LITTLEAPPLE
+            },
+            {
+                text: 'go to school',
+                value: XBuzzerMusics.GOTOSCHOOL
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xbuzzer sound menu element
+     */
+    get XBUZZER_SOUNDS_MENU () {
+        return [
+            {
+                text: 'ambulance',
+                value: XBuzzerSounds.AMBULANCE
+            },
+            {
+                text: 'fire engine',
+                value: XBuzzerSounds.FIRE_ENGINE
+            },
+            {
+                text: 'police wagon',
+                value: XBuzzerSounds.POLICE_WAGON
+            },
+            {
+                text: 'car whistling',
+                value: XBuzzerSounds.CAR_WHISTLING
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast object menu element
+     */
+    get XVOICEBROADCAST_OBJECTS_MENU () {
+        return [
+            {
+                text: 'value',
+                value: XVoiceBroadcastObjects.VALUE
+            },
+            {
+                text: 'light',
+                value: XVoiceBroadcastObjects.LIGHT
+            },
+            {
+                text: 'sound',
+                value: XVoiceBroadcastObjects.SOUND
+            },
+            {
+                text: 'temperature',
+                value: XVoiceBroadcastObjects.TEMPERATURE
+            },
+            {
+                text: 'humidity',
+                value: XVoiceBroadcastObjects.HUMIDITY
+            },
+            {
+                text: 'distance',
+                value: XVoiceBroadcastObjects.DISTANCE
+            },
+            {
+                text: 'speed',
+                value: XVoiceBroadcastObjects.SPEED
+            },
+            {
+                text: 'status',
+                value: XVoiceBroadcastObjects.STATUS
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast operator menu element
+     */
+    get XVOICEBROADCAST_OPERATORS_MENU () {
+        return [
+            {
+                text: '+',
+                value: XVoiceBroadcastOperators.ADD
+            },
+            {
+                text: '-',
+                value: XVoiceBroadcastOperators.MINUS
+            },
+            {
+                text: '*',
+                value: XVoiceBroadcastOperators.MULTI
+            },
+            {
+                text: '/',
+                value: XVoiceBroadcastOperators.DIVIDE
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast action menu element
+     */
+    get XVOICEBROADCAST_SOUND_ACTIONS_MENU () {
+        return [
+            {
+                text: 'tick tock',
+                value: 70
+            },
+            {
+                text: 'whole bell',
+                value: 71
+            },
+            {
+                text: 'jo',
+                value: 72
+            },
+            {
+                text: 'jojo',
+                value: 73
+            },
+            {
+                text: 'jojojo',
+                value: 74
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast alarm menu element
+     */
+    get XVOICEBROADCAST_SOUND_ALARMS_MENU () {
+        return [
+            {
+                text: 'police',
+                value: 78
+            },
+            {
+                text: 'fire engine',
+                value: 79
+            },
+            {
+                text: 'ambulance',
+                value: 80
+            },
+            {
+                text: 'bell',
+                value: 81
+            },
+            {
+                text: 'guard',
+                value: 82
+            },
+            {
+                text: 'red alert',
+                value: 83
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast science menu element
+     */
+    get XVOICEBROADCAST_SOUND_SCIENCES_MENU () {
+        return [
+            {
+                text: 'machine run',
+                value: 86
+            },
+            {
+                text: 'robot move',
+                value: 87
+            },
+            {
+                text: 'servo motor',
+                value: 88
+            },
+            {
+                text: 'light saber',
+                value: 89
+            },
+            {
+                text: 'flight',
+                value: 90
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast warn menu element
+     */
+    get XVOICEBROADCAST_SOUND_WARNS_MENU () {
+        return [
+            {
+                text: 'punched-card',
+                value: 94
+            },
+            {
+                text: 'ting ting',
+                value: 95
+            },
+            {
+                text: 'water-drop',
+                value: 96
+            },
+            {
+                text: 'dang',
+                value: 97
+            },
+            {
+                text: 'telephone ringer',
+                value: 98
+            },
+            {
+                text: 'take a picture',
+                value: 99
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast outstar menu element
+     */
+    get XVOICEBROADCAST_SOUND_OUTSTARS_MENU () {
+        return [
+            {
+                text: 'electric wave',
+                value: 102
+            },
+            {
+                text: 'speak',
+                value: 103
+            },
+            {
+                text: 'signal',
+                value: 104
+            },
+            {
+                text: 'spaceship landed',
+                value: 105
+            },
+            {
+                text: 'call',
+                value: 106
+            },
+            {
+                text: 'hiahia',
+                value: 107
+            },
+            {
+                text: 'warn',
+                value: 108
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast mood menu element
+     */
+    get XVOICEBROADCAST_SOUND_MOODS_MENU () {
+        return [
+            {
+                text: 'cheer',
+                value: 110
+            },
+            {
+                text: 'surprise',
+                value: 111
+            },
+            {
+                text: 'happy',
+                value: 112
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xvoicebroadcast music menu element
+     */
+    get XVOICEBROADCAST_SOUND_MUSICS_MENU () {
+        return [
+            {
+                text: 'summer',
+                value: 118
+            },
+            {
+                text: 'always with me',
+                value: 119
+            },
+            {
+                text: 'jingle bells',
+                value: 120
+            },
+            {
+                text: 'waiting for the wind',
+                value: 121
+            },
+            {
+                text: 'doraemon',
+                value: 122
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xledmatrix effect menu element
+     */
+    get XLEDMATRIX_EFFECTS_MENU () {
+        return [
+            {
+                text: 'static',
+                value: XLEDMatrixEffects.GREATER
+            },
+            {
+                text: 'up',
+                value: XLEDMatrixEffects.ROLL_UP
+            },
+            {
+                text: 'down',
+                value: XLEDMatrixEffects.ROLL_DWON
+            },
+            {
+                text: 'left',
+                value: XLEDMatrixEffects.ROLL_LEFT
+            },
+            {
+                text: 'right',
+                value: XLEDMatrixEffects.ROLL_RIGHT
+            },
+            {
+                text: 'flicker',
+                value: XLEDMatrixEffects.FLICKER
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xledmatrix emot menu element
+     */
+    get XLEDMATRIX_EMOTS_MENU () {
+        return [
+            {
+                text: 'cool',
+                value: XLEDMatrixEmots.COOL
+            },
+            {
+                text: 'smile',
+                value: XLEDMatrixEmots.SMILE
+            },
+            {
+                text: 'laugh',
+                value: XLEDMatrixEmots.LAUGH
+            },
+            {
+                text: 'grievance',
+                value: XLEDMatrixEmots.GRIEVANCE
+            },
+            {
+                text: 'angry',
+                value: XLEDMatrixEmots.ANGRY
+            },
+            {
+                text: 'anger',
+                value: XLEDMatrixEmots.ANGER
+            },
+            {
+                text: 'cry',
+                value: XLEDMatrixEmots.CRY
+            },
+            {
+                text: 'naughty',
+                value: XLEDMatrixEmots.NAUGHTY
+            },
+            {
+                text: 'love',
+                value: XLEDMatrixEmots.LOVE
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xledmatrix flag menu element
+     */
+    get XLEDMATRIX_FLAGS_MENU () {
+        return [
+            {
+                text: 'X',
+                value: XLEDMatrixFlags.X
+            },
+            {
+                text: 'rectangle',
+                value: XLEDMatrixFlags.RECTANGLE
+            },
+            {
+                text: 'triganle',
+                value: XLEDMatrixFlags.TRIGANLE
+            },
+            {
+                text: 'circle',
+                value: XLEDMatrixFlags.CIRCLE
+            },
+            {
+                text: 'up',
+                value: XLEDMatrixFlags.UP
+            },
+            {
+                text: 'down',
+                value: XLEDMatrixFlags.DOWN
+            },
+            {
+                text: 'left',
+                value: XLEDMatrixFlags.LEFT
+            },
+            {
+                text: 'right',
+                value: XLEDMatrixFlags.RIGHT
+            },
+            {
+                text: 'stop',
+                value: XLEDMatrixFlags.STOP
+            },
+            {
+                text: 'forward and turn left',
+                value: XLEDMatrixFlags.FORWARD_AND_TURN_LEFT
+            },
+            {
+                text: 'forward and turn right',
+                value: XLEDMatrixFlags.FORWARD_AND_TURN_RIGHT
+            },
+            {
+                text: 'backward and turn left',
+                value: XLEDMatrixFlags.BACKWARD_AND_TURN_LEFT
+            },
+            {
+                text: 'backward and turn right',
+                value: XLEDMatrixFlags.BACKWARD_AND_TURN_RIGHT
+            },
+            {
+                text: 'cup',
+                value: XLEDMatrixFlags.CUP
+            },
+            {
+                text: 'banner',
+                value: XLEDMatrixFlags.BANNER
             }
         ];
     }
@@ -532,6 +2033,9 @@ class Scratch3XKitHqroverBlocks {
 
         // Create a new XKitHqrover peripheral instance
         this._peripheral = new XKitHqrover(this.runtime, Scratch3XKitHqroverBlocks.EXTENSION_ID);
+
+        //
+        this._intervalID = 0;
     }
 
     /**
@@ -569,7 +2073,7 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: XKitHqroverModels.MODEL1
                         }
                     }
-                }*/,
+                },
                 {
                     opcode: 'XButton_whenPressed',
                     text: formatMessage({
@@ -585,66 +2089,12 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: XButtonPorts.PORT1
                         }
                     }
-                },
-                {
-                    opcode: 'XButton_isPressed',
-                    text: formatMessage({
-                        id: 'xkithqrover.XButton_isPressed',
-                        default: '[PORT] button pressed?',
-                        description: 'is the selected button on the hqrover pressed?'
-                    }),
-                    blockType: BlockType.BOOLEAN,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbutton_ports',
-                            defaultValue: XButtonPorts.PORT1
-                        }
-                    }
-                },
-                '---',
-                {
-                    opcode: 'XSegDisplay_showNumber',
-                    text: formatMessage({
-                        id: 'xkithqrover.XSegDisplay_showNumber',
-                        default: 'SegDisplay[PORT] show number [NUM]',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        NUM: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 123
-                        }
-                    }
-                },
-                {
-                    opcode: 'XSegDisplay_clear',
-                    text: formatMessage({
-                        id: 'xkithqrover.XSegDisplay_clear',
-                        default: 'SegDisplay[PORT] clear',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        }
-                    }
-                },
-                '---',
+                },*/
                 {
                     opcode: 'HQRCarDriver_move',
                     text: formatMessage({
                         id: 'xkithqrover.HQRCarDriver_move',
-                        default: 'Car [DIR] speed[SPEED]',
+                        default: 'car [DIR] speed[SPEED]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -664,7 +2114,7 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'HQRCarDriver_turn',
                     text: formatMessage({
                         id: 'xkithqrover.HQRCarDriver_turn',
-                        default: 'Car [ACTION] speed[SPEED] angle[ANGLE]',
+                        default: 'car [ACTION] speed[SPEED] angle[ANGLE]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -688,19 +2138,975 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'HQRCarDriver_stop',
                     text: formatMessage({
                         id: 'xkithqrover.HQRCarDriver_stop',
-                        default: 'Car stop',
+                        default: 'car stop',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
                     arguments: {
                     }
+                },
+                {
+                    opcode: 'HQRCarDriver_autoLineTracking',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRCarDriver_autoLineTracking',
+                        default: 'car auto line tracking with[IRT_PORT] speed[SPEED]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        IRT_PORT: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 25
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRCarDriver_autoObstacleAvoidance',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRCarDriver_autoObstacleAvoidance',
+                        default: 'car auto obstacle avoidance with[ULS_PORT] speed[SPEED]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ULS_PORT: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 25
+                        }
+                    }
+                },
+                '---',
+                {
+                    opcode: 'XSoundSensor_getVolume',
+                    text: formatMessage({
+                        id: 'xkithqrover.XSoundSensor_getVolume',
+                        default: 'sound sensor[PORT] volume(0~100)',
+                        description: ''
+                    }),
+                    blockType: BlockType.REPORTER,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xsoundsensor_ports',
+                            defaultValue: XSoundSensorPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLightSensor_getLuminance',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLightSensor_getLuminance',
+                        default: 'light sensor[PORT] luminance(0~100)',
+                        description: ''
+                    }),
+                    blockType: BlockType.REPORTER,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xlightsensor_ports',
+                            defaultValue: XLightSensorPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'XButton_isPressed',
+                    text: formatMessage({
+                        id: 'xkithqrover.XButton_isPressed',
+                        default: 'button[PORT] is pressed',
+                        description: ''
+                    }),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbutton_ports',
+                            defaultValue: XButtonPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'XIRTracking_checkStatus',
+                    text: formatMessage({
+                        id: 'xkithqrover.XIRTracking_checkStatus',
+                        default: 'IR tracking sensor[PORT] status[STATUS]',
+                        description: ''
+                    }),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        STATUS: {
+                            type: ArgumentType.STRING,
+                            menu: 'irtracking_status',
+                            defaultValue: 3
+                        }
+                    }
+                },
+                {
+                    opcode: 'XUltrasonic_getDistance',
+                    text: formatMessage({
+                        id: 'xkithqrover.XUltrasonic_getDistance',
+                        default: 'ultrasonic[PORT] distance',
+                        description: ''
+                    }),
+                    blockType: BlockType.REPORTER,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'XIRAvoiding_checkStatus',
+                    text: formatMessage({
+                        id: 'xkithqrover.XIRAvoiding_checkStatus',
+                        default: 'IR avoiding sensor[PORT] status',
+                        description: ''
+                    }),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        }
+                    }
+                },
+                '---',
+                {
+                    opcode: 'HQRLightShow_showColor',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_showColor',
+                        default: 'RGB LED[PORT] light[INDEX] color[COLOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        INDEX: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_showBreath',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_showBreath',
+                        default: 'RGB LED[PORT] light[INDEX] speed[SPEED] color[COLOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        INDEX: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        SPEED: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_showMeteor',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_showMeteor',
+                        default: 'RGB LED[PORT] meteor speed[SPEED] color[COLOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        SPEED: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_clear',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_clear',
+                        default: 'RGB LED[PORT] clear',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_setNoteParameter',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_setNoteParameter',
+                        default: 'buzzer[PORT] set beat time[BEATTIME]secs(0.1~2)',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        BEATTIME: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0.8
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_playNote',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_playNote',
+                        default: 'buzzer[PORT] play note[NOTE] [SCALE]scale [TONE]tone [BEAT]beat',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        NOTE: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_notes',
+                            defaultValue: 1
+                        },
+                        SCALE: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_scales',
+                            defaultValue: 0
+                        },
+                        TONE: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_tones',
+                            defaultValue: 0
+                        },
+                        BEAT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_beats',
+                            defaultValue: 1
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_playMusic',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_playMusic',
+                        default: 'buzzer[PORT] play music[MUSIC]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        MUSIC: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_musics',
+                            defaultValue: XBuzzerMusics.HAPPYBIRTHDAY
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_playSound',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_playSound',
+                        default: 'buzzer[PORT] play sound[SOUND]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        SOUND: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_sounds',
+                            defaultValue: XBuzzerSounds.AMBULANCE
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_stop',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_stop',
+                        default: 'buzzer[PORT] stop',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'XSegDisplay_showNumber',
+                    text: formatMessage({
+                        id: 'xkithqrover.XSegDisplay_showNumber',
+                        default: 'segment LED[PORT] show number [NUM]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT2
+                        },
+                        NUM: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 123
+                        }
+                    }
+                },
+                {
+                    opcode: 'XSegDisplay_showCharacter',
+                    text: formatMessage({
+                        id: 'xkithqrover.XSegDisplay_showCharacter',
+                        default: 'segment LED[PORT] show[INDEX] character[CHAR](0~9,A~F)',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT2
+                        },
+                        INDEX: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xsegdisplay_indexs',
+                            defaultValue: 1
+                        },
+                        CHAR: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'B'
+                        }
+                    }
+                },
+                {
+                    opcode: 'XSegDisplay_showSegment',
+                    text: formatMessage({
+                        id: 'xkithqrover.XSegDisplay_showSegment',
+                        default: 'segment LED[PORT] show[INDEX] segment[SEG](abcdefg.)',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT2
+                        },
+                        INDEX: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xsegdisplay_indexs',
+                            defaultValue: 1
+                        },
+                        SEG: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'A'
+                        }
+                    }
+                },
+                {
+                    opcode: 'XSegDisplay_clearSegment',
+                    text: formatMessage({
+                        id: 'xkithqrover.XSegDisplay_clearSegment',
+                        default: 'segment LED[PORT] clear[INDEX] segment[SEG](abcdefg.)',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT2
+                        },
+                        INDEX: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xsegdisplay_indexs',
+                            defaultValue: 1
+                        },
+                        SEG: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'A'
+                        }
+                    }
+                },
+                {
+                    opcode: 'XSegDisplay_clear',
+                    text: formatMessage({
+                        id: 'xkithqrover.XSegDisplay_clear',
+                        default: 'segment LED[PORT] clear',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT2
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportObject',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportObject',
+                        default: 'voice broadcast[PORT] report[OBJECT] value[VALUE]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        OBJECT: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_objects',
+                            defaultValue: XVoiceBroadcastObjects.VALUE
+                        },
+                        VALUE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportTime',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportTime',
+                        default: 'voice broadcast[PORT] report time [HOUR]hour [MINUTE]minute [SECOND]secs',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        HOUR: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 11
+                        },
+                        MINUTE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 11
+                        },
+                        SECOND: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 11
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportDate',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportDate',
+                        default: 'voice broadcast[PORT] report date [YEAR]year [MONTH]month [DAY]day',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        YEAR: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 2018
+                        },
+                        MONTH: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 11
+                        },
+                        DAY: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 11
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportOperator',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportOperator',
+                        default: 'voice broadcast[PORT] report operator [OPERATOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        OPERATOR: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_operators',
+                            defaultValue: XVoiceBroadcastOperators.ADD
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportAction',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportAction',
+                        default: 'voice broadcast[PORT] report action [ACTION] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        ACTION: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_actions',
+                            defaultValue: 70
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportAlarm',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportAlarm',
+                        default: 'voice broadcast[PORT] report alarm [ALARM] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        ALARM: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_alarms',
+                            defaultValue: 78
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportScience',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportScience',
+                        default: 'voice broadcast[PORT] report science [SCIENCE] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        SCIENCE: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_sciences',
+                            defaultValue: 86
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportWarn',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportWarn',
+                        default: 'voice broadcast[PORT] report warn [WARN] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        WARN: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_warns',
+                            defaultValue: 94
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportOutstar',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportOutstar',
+                        default: 'voice broadcast[PORT] report outstar [OUTSTAR] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        OUTSTAR: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_outstars',
+                            defaultValue: 102
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportMood',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportMood',
+                        default: 'voice broadcast[PORT] report mood [MOOD] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        MOOD: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_moods',
+                            defaultValue: 110
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_reportMusic',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_reportMusic',
+                        default: 'voice broadcast[PORT] report music [MUSIC] [REPEAT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        },
+                        MUSIC: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xvoicebroadcast_musics',
+                            defaultValue: 118
+                        },
+                        REPEAT: {
+                            type: ArgumentType.BOOLEAN,
+                            //menu: 'repeats',
+                            defaultValue: false
+                        }
+                    }
+                },
+                {
+                    opcode: 'XVoiceBroadcast_stop',
+                    text: formatMessage({
+                        id: 'xkithqrover.XVoiceBroadcast_stop',
+                        default: 'voice broadcast[PORT] stop',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT3
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLEDMatrix_setEffect',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLEDMatrix_setEffect',
+                        default: 'LED matrix[PORT] show effect[EFFECT] speed[SPEED]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        EFFECT: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xledmatrix_effects',
+                            defaultValue: XLEDMatrixEffects.GREATER
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'speeds',
+                            defaultValue: XKitHqroverSpeeds.SLOW
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLEDMatrix_showNumber',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLEDMatrix_showNumber',
+                        default: 'LED matrix[PORT] show number[NUM]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        NUM: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 1.23
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLEDMatrix_showNumberPair',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLEDMatrix_showNumberPair',
+                        default: 'LED matrix[PORT] show score[A]:[B]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        A: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        B: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLEDMatrix_showEmoticon',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLEDMatrix_showEmoticon',
+                        default: 'LED matrix[PORT] show emoticon[EMOT]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        EMOT: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xledmatrix_emots',
+                            defaultValue: XLEDMatrixEmots.COOL
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLEDMatrix_showFlag',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLEDMatrix_showFlag',
+                        default: 'LED matrix[PORT] show flag[FLAG]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        FLAG: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xledmatrix_flags',
+                            defaultValue: XLEDMatrixFlags.X
+                        }
+                    }
+                },
+                {
+                    opcode: 'XLEDMatrix_clear',
+                    text: formatMessage({
+                        id: 'xkithqrover.XLEDMatrix_clear',
+                        default: 'LED matrix[PORT] clear',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        }
+                    }
+                },
+                '---',
+                {
+                    opcode: 'XIRReceiver_enableLongPress',
+                    text: formatMessage({
+                        id: 'xkithqrover.XIRReceiver_enableLongPress',
+                        default: 'IR receiver[PORT] enable long press[KEY]',
+                        description: ''
+                    }),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        KEY: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '1'
+                        }
+                    }
+                },
+                {
+                    opcode: 'XIRReceiver_checkMessage',
+                    text: formatMessage({
+                        id: 'xkithqrover.XIRReceiver_checkMessage',
+                        default: 'IR receiver[PORT] received message is[KEY]',
+                        description: ''
+                    }),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'ports',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        KEY: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '1'
+                        }
+                    }
                 }
             ],
             menus: {
+                compare_oper: this.COMPARE_OPER_MENU,
                 ports: this.PORTS_MENU,
+                speeds: this.SPEEDS_MENU,
+                repeats: this.REPEATS_MENU,
+                xsoundsensor_ports: this.XSOUNDSENSOR_PORTS_MENU,
+                xlightsensor_ports: this.XLIGHTSENSOR_PORTS_MENU,
                 xbutton_ports: this.XBUTTON_PORTS_MENU,
+                irtracking_status: this.XIRTRACKING_STATUS_MENU,
                 hqrcardriver_dirs: this.HQRCARDRIVER_DIRS_MENU,
-                hqrcardriver_actions: this.HQRCARDRIVER_ACTIONS_MENU
+                hqrcardriver_actions: this.HQRCARDRIVER_ACTIONS_MENU,
+                xsegdisplay_indexs: this.XSEGDISPLAY_INDEXS_MENU,
+                xbuzzer_ports: this.XBUZZER_PORTS_MENU,
+                xbuzzer_notes: this.XBUZZER_NOTES_MENU,
+                xbuzzer_scales: this.XBUZZER_SCALES_MENU,
+                xbuzzer_tones: this.XBUZZER_TONES_MENU,
+                xbuzzer_beats: this.XBUZZER_BEATS_MENU,
+                xbuzzer_musics: this.XBUZZER_MUSICS_MENU,
+                xbuzzer_sounds: this.XBUZZER_SOUNDS_MENU,
+                xvoicebroadcast_objects: this.XVOICEBROADCAST_OBJECTS_MENU,
+                xvoicebroadcast_operators: this.XVOICEBROADCAST_OPERATORS_MENU,
+                xvoicebroadcast_actions: this.XVOICEBROADCAST_SOUND_ACTIONS_MENU,
+                xvoicebroadcast_alarms: this.XVOICEBROADCAST_SOUND_ALARMS_MENU,
+                xvoicebroadcast_sciences: this.XVOICEBROADCAST_SOUND_SCIENCES_MENU,
+                xvoicebroadcast_warns: this.XVOICEBROADCAST_SOUND_WARNS_MENU,
+                xvoicebroadcast_outstars: this.XVOICEBROADCAST_SOUND_OUTSTARS_MENU,
+                xvoicebroadcast_moods: this.XVOICEBROADCAST_SOUND_MOODS_MENU,
+                xvoicebroadcast_musics: this.XVOICEBROADCAST_SOUND_MUSICS_MENU,
+                xledmatrix_effects: this.XLEDMATRIX_EFFECTS_MENU,
+                xledmatrix_emots: this.XLEDMATRIX_EMOTS_MENU,
+                xledmatrix_flags: this.XLEDMATRIX_FLAGS_MENU
             }
         };
     }
@@ -718,35 +3124,11 @@ class Scratch3XKitHqroverBlocks {
         } 
     }*/
 
-    XButton_whenPressed (args) {
-        return this._peripheral.XButton_isPressed(args.PORT);
-    }
-
-    XButton_isPressed (args) {
-        return this._peripheral.XButton_isPressed(args.PORT);
-    }
-
-    XSegDisplay_showNumber (args) {
-        this._peripheral.XSegDisplay_showNumber(args.PORT, args.NUM);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    XSegDisplay_clear (args) {
-        this._peripheral.XSegDisplay_clear(args.PORT);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
+    ///Move
+    
     HQRCarDriver_move (args) {
+        if (!this._peripheral.isConnected()) return;
+
         if(args.DIR==HQRCarDriverDirs.FORWARD) {
             this._peripheral.HQRCarDriver_forward(args.SPEED);
         } else {
@@ -754,13 +3136,18 @@ class Scratch3XKitHqroverBlocks {
         }
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
 
     HQRCarDriver_turn (args) {
+        if (!this._peripheral.isConnected()) return;
+
         this._peripheral.HQRCarDriver_turn(args.ACTION, args.SPEED, args.ANGLE);
 
         return new Promise(resolve => {
@@ -771,6 +3158,8 @@ class Scratch3XKitHqroverBlocks {
     }
 
     HQRCarDriver_stop (args) {
+        if (!this._peripheral.isConnected()) return;
+
         this._peripheral.HQRCarDriver_stop();
 
         return new Promise(resolve => {
@@ -779,6 +3168,503 @@ class Scratch3XKitHqroverBlocks {
             }, XBridgeSendInterval);
         });
     }
+    
+    HQRCarDriver_autoLineTracking(args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRCarDriver_autoLineTracking(args.IRT_PORT, args.SPEED);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRCarDriver_autoObstacleAvoidance(args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRCarDriver_autoObstacleAvoidance(args.ULS_PORT, args.SPEED);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    //Servo 不要
+
+    ///Sense
+
+    XSoundSensor_getVolume (args) {
+        if (!this._peripheral.isConnected()) return 0;
+
+        return this._peripheral.XSoundSensor_getVolume(args.PORT);
+    }
+
+    XLightSensor_getLuminance (args) {
+        if (!this._peripheral.isConnected()) return 0;
+
+        return this._peripheral.XLightSensor_getLuminance(args.PORT);
+    }
+
+    XButton_whenPressed (args) {
+        if (!this._peripheral.isConnected()) return false;
+
+        return this._peripheral.XButton_isPressed(args.PORT);
+    }
+
+    XButton_isPressed (args) {
+        if (!this._peripheral.isConnected()) return false;
+
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.status == 1;
+        } else {
+            block = this._peripheral.constructBlock('XButton', '', args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.status == 1);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XButton_isPressed(args.PORT);
+    }
+
+    XIRTracking_checkStatus (args) {
+        if (!this._peripheral.isConnected()) return false;
+
+        return this._peripheral.XIRTracking_getStatus(args.PORT) == args.STATUS;
+    }
+
+    XUltrasonic_getDistance (args) {
+        if (!this._peripheral.isConnected()) return 0;
+
+        return this._peripheral.XUltrasonic_getDistance(args.PORT);
+    }
+
+    XIRAvoiding_checkStatus (args) {
+        if (!this._peripheral.isConnected()) return false;
+
+        return this._peripheral.XIRAvoiding_getStatus(args.PORT) == args.STATUS;
+    }
+
+    ///Show
+
+    HQRLightShow_showColor (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        const rgb = cast.toRgbColorObject(args.COLOR);
+        //const hsv = Color.rgbToHsv(rgb);
+        this._peripheral.HQRLightShow_showColor(args.PORT, rgb.r, rgb.g, rgb.b);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRLightShow_showBreath (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        const rgb = cast.toRgbColorObject(args.COLOR);
+        //const hsv = Color.rgbToHsv(rgb);
+        this._peripheral.HQRLightShow_showBreath(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRLightShow_showMeteor (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        const rgb = cast.toRgbColorObject(args.COLOR);
+        //const hsv = Color.rgbToHsv(rgb);
+        this._peripheral.HQRLightShow_showMeteor(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRLightShow_clear (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRLightShow_clear(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_setNoteParameter (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_setNoteParameter(args.PORT, args.BEATTIME);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_playNote (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_playNote(args.PORT, args.NOTE);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_playMusic (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_playMusic(args.PORT, args.MUSIC);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_playSound (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_playSound(args.PORT, args.SOUND);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_stop (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_stop(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XSegDisplay_showNumber (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XSegDisplay_showNumber(args.PORT, args.NUM);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XSegDisplay_showCharacter (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XSegDisplay_showCharacter(args.PORT, args.INDEX, args.CHAR);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XSegDisplay_showSegment (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XSegDisplay_showSegment(args.PORT, args.INDEX, args.SEG);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XSegDisplay_clearSegment (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XSegDisplay_clearSegment(args.PORT, args.INDEX, args.SEG);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XSegDisplay_clear (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XSegDisplay_clear(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportObject (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportObject(args.PORT, args.OBJECT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportTime (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportTime(args.PORT, args.HOUR, args.MINUTE, args.SECOND);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportDate (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportDate(args.PORT, args.YEAR, args.MONTH, args.DAY);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportOperator (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportOperator(args.PORT, args.OPERATOR);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportAction (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ACTION);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportAlarm (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ALARM);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportScience (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.SCIENCE);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportWarn (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.WARN);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportOutstar (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.OUTSTAR);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportMood (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MOOD);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_reportMusic (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MUSIC);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XVoiceBroadcast_stop (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XVoiceBroadcast_stop(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XLEDMatrix_setEffect (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XLEDMatrix_setEffect(args.PORT, args.EFFECT, args.SPEED);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XLEDMatrix_showNumber (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XLEDMatrix_showNumber(args.PORT, args.NUM);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XLEDMatrix_showNumberPair (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XLEDMatrix_showNumberPair(args.PORT, args.A, args.B);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XLEDMatrix_showEmoticon (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XLEDMatrix_showEmoticon(args.PORT, args.EMOT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XLEDMatrix_showFlag (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XLEDMatrix_showFlag(args.PORT, args.FLAG);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XLEDMatrix_clear (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XLEDMatrix_clear(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    //Message
+
+    XIRReceiver_enableLongPress (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.XIRReceiver_enableLongPress(args.PORT, args.KEY);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    XIRReceiver_checkMessage (args) {
+        if (!this._peripheral.isConnected()) return false;
+
+        return this._peripheral.XIRReceiver_checkMessage(args.PORT) == args.NUM;
+    }
+
 }
 
 module.exports = Scratch3XKitHqroverBlocks;
