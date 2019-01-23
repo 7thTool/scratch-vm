@@ -86,6 +86,11 @@ class XKitHqrover {
         this._onReceive = this._onReceive.bind(this);
     }
 
+    clearAll() {
+        this._blocks = {};
+        this._services = {};
+    }
+
     isOnBoardBlock(port) {
         return isNaN(port);
     }
@@ -381,143 +386,6 @@ class XKitHqrover {
         return false;
     }
 
-    HQRLightShow_showColor (rgb_port, index, red, green, blue) {
-        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
-        if (block) {
-            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
-            if (server) {
-                const params = {
-                    type: server.type,
-                    ports: server.ports,
-                    rgb_model: block.model,
-                    rgb_port,
-                    index,
-                    red,
-                    green,
-                    blue,
-                    clearOthers: true
-                };
-                this.send("HQRLightShow_showColor", params);
-            }
-        }
-    }
-
-    HQRLightShow_showBreath (rgb_port, index, speed, red, green, blue) {
-        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
-        if (block) {
-            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
-            if (server) {
-                const params = {
-                    type: server.type,
-                    ports: server.ports,
-                    rgb_model: block.model,
-                    rgb_port,
-                    index,
-                    speed,
-                    red,
-                    green,
-                    blue
-                };
-                this.send("HQRLightShow_showBreath", params);
-            }
-        }
-    }
-
-    HQRLightShow_showMeteor (rgb_port, speed, red, green, blue) {
-        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
-        if (block) {
-            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
-            if (server) {
-                const params = {
-                    type: server.type,
-                    ports: server.ports,
-                    rgb_model: block.model,
-                    rgb_port,
-                    speed,
-                    red,
-                    green,
-                    blue
-                };
-                this.send("HQRLightShow_showMeteor", params);
-            }
-        }
-    }
-
-    HQRLightShow_clear (rgb_port) {
-        const block = this.findOrConstructBlock('XRGBLed', XRGBLedModels.MODEL1, rgb_port);
-        if (block) {
-            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
-            if (server) {
-                const params = {
-                    type: server.type,
-                    ports: server.ports,
-                    rgb_model: block.model,
-                    rgb_port,
-                };
-                this.send("HQRLightShow_clear", params);
-            }
-        }
-    }
-
-    HQRAudioPlayer_setNoteParameter (port,beatTime) {
-        const server = this.findOrConstructServer('HQRAudioPlayer', port);
-        if (server) {
-            const params = {
-                type: server.type,
-                ports: server.ports,
-                beatTime
-            };
-            this.send("HQRAudioPlayer_setNoteParameter", params); 
-        }
-    }
-
-    HQRAudioPlayer_playNote (port, note) {
-        const server = this.findOrConstructServer('HQRAudioPlayer', port);
-        if (server) {
-            const params = {
-                type: server.type,
-                ports: server.ports,
-                note
-            };
-            this.send("HQRAudioPlayer_playNote", params); 
-        }
-    }
-
-    HQRAudioPlayer_playMusic (port, music) {
-        const server = this.findOrConstructServer('HQRAudioPlayer', port);
-        if (server) {
-            const params = {
-                type: server.type,
-                ports: server.ports,
-                music
-            };
-            this.send("HQRAudioPlayer_playMusic", params); 
-        }
-    }
-
-    HQRAudioPlayer_playSound (port, sound) {
-        const server = this.findOrConstructServer('HQRAudioPlayer', port);
-        if (server) {
-            const params = {
-                type: server.type,
-                ports: server.ports,
-                sound
-            };
-            this.send("HQRAudioPlayer_playSound", params); 
-        }
-    }
-
-    HQRAudioPlayer_stop (port) {
-        const server = this.findOrConstructServer('HQRAudioPlayer', port);
-        if (server) {
-            const params = {
-                type: server.type,
-                ports: server.ports
-            };
-            this.send("HQRAudioPlayer_stop", params); 
-        }
-    }
-    
     XSegDisplay_showNumber(port, num) {
         const block = this.findOrConstructBlock('XSegDisplay', XSegDisplayModels.MODEL1, port);
         if (block) {
@@ -585,6 +453,146 @@ class XKitHqrover {
         }
     }
     
+    HQRLightShow_showColor (rgb_port, index, red, green, blue) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                    index,
+                    red,
+                    green,
+                    blue,
+                    clearOthers: true
+                };
+                this.send("HQRLightShow_showColor", params);
+            }
+        }
+    }
+
+    HQRLightShow_showBreath (rgb_port, index, speed, red, green, blue) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                    index,
+                    speed,
+                    red,
+                    green,
+                    blue
+                };
+                this.send("HQRLightShow_showBreath", params);
+            }
+        }
+    }
+
+    HQRLightShow_showMeteor (rgb_port, speed, red, green, blue) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                    speed,
+                    red,
+                    green,
+                    blue
+                };
+                this.send("HQRLightShow_showMeteor", params);
+            }
+        }
+    }
+
+    HQRLightShow_clear (rgb_port) {
+        const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
+        if (block) {
+            const server = this.findOrConstructServer('HQRLightShow', rgb_port);
+            if (server) {
+                const params = {
+                    type: server.type,
+                    ports: server.ports,
+                    rgb_model: block.model,
+                    rgb_port,
+                };
+                this.send("HQRLightShow_clear", params);
+            }
+        }
+    }
+
+    HQRAudioPlayer_setNoteParameter (port,beatTime) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                beatTime
+            };
+            this.send("HQRAudioPlayer_setNoteParameter", params); 
+        }
+    }
+
+    HQRAudioPlayer_playNote (port, note, scale, tone, beat) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                note,
+                scale,
+                tone,
+                beat
+            };
+            this.send("HQRAudioPlayer_playNote", params); 
+        }
+    }
+
+    HQRAudioPlayer_playMusic (port, music) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                music
+            };
+            this.send("HQRAudioPlayer_playMusic", params); 
+        }
+    }
+
+    HQRAudioPlayer_playSound (port, sound) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports,
+                sound
+            };
+            this.send("HQRAudioPlayer_playSound", params); 
+        }
+    }
+
+    HQRAudioPlayer_stop (port) {
+        const server = this.findOrConstructServer('HQRAudioPlayer', port);
+        if (server) {
+            const params = {
+                type: server.type,
+                ports: server.ports
+            };
+            this.send("HQRAudioPlayer_stop", params); 
+        }
+    }
+    
     XVoiceBroadcast_reportObject (port, index, value) {
         const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
         if (block) {
@@ -642,15 +650,15 @@ class XKitHqrover {
         }
     }
 
-    XVoiceBroadcast_reportSond (port, index, value) {
+    XVoiceBroadcast_reportSond (port, which, repeat) {
         const block = this.findOrConstructBlock('XVoiceBroadcast', XVoiceBroadcastModels.MODEL1, port);
         if (block) {
             const params = {
                 type: block.type,
                 model: block.model,
                 port: block.port,
-                index,
-                value
+                which,
+                repeat
             };
             this.send("XVoiceBroadcast_reportSound", params);
         }
@@ -796,8 +804,7 @@ class XKitHqrover {
      * Disconnect from the xkithqrover.
      */
     disconnect () {
-        this._blocks = {};
-        this._services = {};
+        this.clearAll();
         window.clearInterval(this._timeoutID);
         if (this._xbridge) {
             this._xbridge.disconnect();
@@ -856,6 +863,7 @@ class XKitHqrover {
      * @private
      */
     _onConnect () {
+        this.clearAll();
         //this._xbridge.read(XBridgeUUID.service, XBridgeUUID.rxChar, true, this._onMessage);
         //this._timeoutID = window.setInterval(this.disconnect, XBridgeTimeout);
     }
@@ -1036,10 +1044,6 @@ const XBuzzerPorts = {
     PORT1: 'BUZ'
 };
 
-const XBuzzerModels = {
-    MODEL1: 'BUZ3200'
-};
-
 const XBuzzerMusics = {
     HAPPYBIRTHDAY: 1,
     LITTLESTAR: 2,
@@ -1135,6 +1139,14 @@ const XLEDMatrixFlags = {
     BACKWARD_AND_TURN_RIGHT: 12,
     CUP: 13,
     BANNER: 14
+};
+
+/**
+ * Enum for XIRReceiver.
+ */
+
+const XIRReceiverPorts = {
+    PORT1: 'IRR'
 };
 
 /**
@@ -1385,6 +1397,62 @@ class Scratch3XKitHqroverBlocks {
      */
     get XSEGDISPLAY_INDEXS_MENU () {
         return [
+            {
+                text: '1',
+                value: 1
+            },
+            {
+                text: '2',
+                value: 2
+            },
+            {
+                text: '3',
+                value: 3
+            },
+            {
+                text: '4',
+                value: 4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each rgbled port menu element
+     */
+    get XRGBLED_PORTS_MENU () {
+        return [
+            {
+                text: XRGBLedPorts.PORT1,
+                value: XRGBLedPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
+            },
+            {
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
+            },
+            {
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each rgbled index menu element
+     */
+    get XRGBLED_INDEXS_MENU () {
+        return [
+            {
+                text: 'all',
+                value: 0
+            },
             {
                 text: '1',
                 value: 1
@@ -2021,6 +2089,34 @@ class Scratch3XKitHqroverBlocks {
     }
 
     /**
+     * @return {array} - text and values for each xirreceiver port menu element
+     */
+    get XIRRECEIVER_PORTS_MENU () {
+        return [
+            {
+                text: XIRReceiverPorts.PORT1,
+                value: XIRReceiverPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT1,
+                value: XKitHqroverPorts.PORT1
+            },
+            {
+                text: XKitHqroverPorts.PORT2,
+                value: XKitHqroverPorts.PORT2
+            },
+            {
+                text: XKitHqroverPorts.PORT3,
+                value: XKitHqroverPorts.PORT3
+            },
+            {
+                text: XKitHqroverPorts.PORT4,
+                value: XKitHqroverPorts.PORT4
+            }
+        ];
+    }
+
+    /**
      * Construct a set of XKitHqrover blocks.
      * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
@@ -2157,7 +2253,7 @@ class Scratch3XKitHqroverBlocks {
                         IRT_PORT: {
                             type: ArgumentType.NUMBER,
                             menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
+                            defaultValue: XKitHqroverPorts.PORT4
                         },
                         SPEED: {
                             type: ArgumentType.NUMBER,
@@ -2246,7 +2342,7 @@ class Scratch3XKitHqroverBlocks {
                         PORT: {
                             type: ArgumentType.STRING,
                             menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
+                            defaultValue: XKitHqroverPorts.PORT4
                         },
                         STATUS: {
                             type: ArgumentType.STRING,
@@ -2288,213 +2384,6 @@ class Scratch3XKitHqroverBlocks {
                     }
                 },
                 '---',
-                {
-                    opcode: 'HQRLightShow_showColor',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRLightShow_showColor',
-                        default: 'RGB LED[PORT] light[INDEX] color[COLOR]',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        INDEX: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        COLOR: {
-                            type: ArgumentType.COLOR
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRLightShow_showBreath',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRLightShow_showBreath',
-                        default: 'RGB LED[PORT] light[INDEX] speed[SPEED] color[COLOR]',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        INDEX: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        SPEED: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        COLOR: {
-                            type: ArgumentType.COLOR
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRLightShow_showMeteor',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRLightShow_showMeteor',
-                        default: 'RGB LED[PORT] meteor speed[SPEED] color[COLOR]',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        SPEED: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        COLOR: {
-                            type: ArgumentType.COLOR
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRLightShow_clear',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRLightShow_clear',
-                        default: 'RGB LED[PORT] clear',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRAudioPlayer_setNoteParameter',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRAudioPlayer_setNoteParameter',
-                        default: 'buzzer[PORT] set beat time[BEATTIME]secs(0.1~2)',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_ports',
-                            defaultValue: XBuzzerPorts.PORT1
-                        },
-                        BEATTIME: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0.8
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRAudioPlayer_playNote',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRAudioPlayer_playNote',
-                        default: 'buzzer[PORT] play note[NOTE] [SCALE]scale [TONE]tone [BEAT]beat',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_ports',
-                            defaultValue: XBuzzerPorts.PORT1
-                        },
-                        NOTE: {
-                            type: ArgumentType.NUMBER,
-                            menu: 'xbuzzer_notes',
-                            defaultValue: 1
-                        },
-                        SCALE: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_scales',
-                            defaultValue: 0
-                        },
-                        TONE: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_tones',
-                            defaultValue: 0
-                        },
-                        BEAT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_beats',
-                            defaultValue: 1
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRAudioPlayer_playMusic',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRAudioPlayer_playMusic',
-                        default: 'buzzer[PORT] play music[MUSIC]',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_ports',
-                            defaultValue: XBuzzerPorts.PORT1
-                        },
-                        MUSIC: {
-                            type: ArgumentType.NUMBER,
-                            menu: 'xbuzzer_musics',
-                            defaultValue: XBuzzerMusics.HAPPYBIRTHDAY
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRAudioPlayer_playSound',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRAudioPlayer_playSound',
-                        default: 'buzzer[PORT] play sound[SOUND]',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_ports',
-                            defaultValue: XBuzzerPorts.PORT1
-                        },
-                        SOUND: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_sounds',
-                            defaultValue: XBuzzerSounds.AMBULANCE
-                        }
-                    }
-                },
-                {
-                    opcode: 'HQRAudioPlayer_stop',
-                    text: formatMessage({
-                        id: 'xkithqrover.HQRAudioPlayer_stop',
-                        default: 'buzzer[PORT] stop',
-                        description: ''
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbuzzer_ports',
-                            defaultValue: XBuzzerPorts.PORT1
-                        }
-                    }
-                },
                 {
                     opcode: 'XSegDisplay_showNumber',
                     text: formatMessage({
@@ -2603,6 +2492,213 @@ class Scratch3XKitHqroverBlocks {
                             type: ArgumentType.STRING,
                             menu: 'ports',
                             defaultValue: XKitHqroverPorts.PORT2
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_showColor',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_showColor',
+                        default: 'RGB LED[PORT] light[INDEX] color[COLOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'rgb_ports',
+                            defaultValue: XRGBLedPorts.PORT1
+                        },
+                        INDEX: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'rgb_indexs',
+                            defaultValue: 0
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_showBreath',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_showBreath',
+                        default: 'RGB LED[PORT] light[INDEX] speed[SPEED] color[COLOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'rgb_ports',
+                            defaultValue: XRGBLedPorts.PORT1
+                        },
+                        INDEX: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'rgb_indexs',
+                            defaultValue: XKitHqroverPorts.PORT1
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'speeds',
+                            defaultValue: XKitHqroverSpeeds.NORMAL
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_showMeteor',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_showMeteor',
+                        default: 'RGB LED[PORT] meteor speed[SPEED] color[COLOR]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'rgb_ports',
+                            defaultValue: XRGBLedPorts.PORT1
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'speeds',
+                            defaultValue: XKitHqroverSpeeds.NORMAL
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRLightShow_clear',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRLightShow_clear',
+                        default: 'RGB LED[PORT] clear',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'rgb_ports',
+                            defaultValue: XRGBLedPorts.PORT1
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_setNoteParameter',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_setNoteParameter',
+                        default: 'buzzer[PORT] set beat time[BEATTIME]secs(0.1~2)',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        BEATTIME: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0.8
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_playNote',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_playNote',
+                        default: 'buzzer[PORT] play note[NOTE] [SCALE]scale [TONE]tone [BEAT]beat',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        NOTE: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_notes',
+                            defaultValue: 1
+                        },
+                        SCALE: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_scales',
+                            defaultValue: 0
+                        },
+                        TONE: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_tones',
+                            defaultValue: 0
+                        },
+                        BEAT: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_beats',
+                            defaultValue: 1
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_playMusic',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_playMusic',
+                        default: 'buzzer[PORT] play music[MUSIC]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        MUSIC: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_musics',
+                            defaultValue: XBuzzerMusics.HAPPYBIRTHDAY
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_playSound',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_playSound',
+                        default: 'buzzer[PORT] play sound[SOUND]',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
+                        },
+                        SOUND: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'xbuzzer_sounds',
+                            defaultValue: XBuzzerSounds.AMBULANCE
+                        }
+                    }
+                },
+                {
+                    opcode: 'HQRAudioPlayer_stop',
+                    text: formatMessage({
+                        id: 'xkithqrover.HQRAudioPlayer_stop',
+                        default: 'buzzer[PORT] stop',
+                        description: ''
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        PORT: {
+                            type: ArgumentType.STRING,
+                            menu: 'xbuzzer_ports',
+                            defaultValue: XBuzzerPorts.PORT1
                         }
                     }
                 },
@@ -3042,7 +3138,7 @@ class Scratch3XKitHqroverBlocks {
                         default: 'IR receiver[PORT] enable long press[KEY]',
                         description: ''
                     }),
-                    blockType: BlockType.BOOLEAN,
+                    blockType: BlockType.COMMAND,
                     arguments: {
                         PORT: {
                             type: ArgumentType.STRING,
@@ -3066,8 +3162,8 @@ class Scratch3XKitHqroverBlocks {
                     arguments: {
                         PORT: {
                             type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
+                            menu: 'irr_ports',
+                            defaultValue: XIRReceiverPorts.PORT1
                         },
                         KEY: {
                             type: ArgumentType.STRING,
@@ -3088,6 +3184,8 @@ class Scratch3XKitHqroverBlocks {
                 hqrcardriver_dirs: this.HQRCARDRIVER_DIRS_MENU,
                 hqrcardriver_actions: this.HQRCARDRIVER_ACTIONS_MENU,
                 xsegdisplay_indexs: this.XSEGDISPLAY_INDEXS_MENU,
+                rgb_ports: this.XRGBLED_PORTS_MENU,
+                rgb_indexs: this.XRGBLED_INDEXS_MENU,
                 xbuzzer_ports: this.XBUZZER_PORTS_MENU,
                 xbuzzer_notes: this.XBUZZER_NOTES_MENU,
                 xbuzzer_scales: this.XBUZZER_SCALES_MENU,
@@ -3106,7 +3204,8 @@ class Scratch3XKitHqroverBlocks {
                 xvoicebroadcast_musics: this.XVOICEBROADCAST_SOUND_MUSICS_MENU,
                 xledmatrix_effects: this.XLEDMATRIX_EFFECTS_MENU,
                 xledmatrix_emots: this.XLEDMATRIX_EMOTS_MENU,
-                xledmatrix_flags: this.XLEDMATRIX_FLAGS_MENU
+                xledmatrix_flags: this.XLEDMATRIX_FLAGS_MENU,
+                irr_ports: this.XIRRECEIVER_PORTS_MENU
             }
         };
     }
@@ -3136,11 +3235,8 @@ class Scratch3XKitHqroverBlocks {
         }
 
         return new Promise(resolve => {
-            this._intervalID = window.setInterval(() => {
-                if(!this._peripheral.isBusy()) {
-                    window.clearInterval(this._intervalID);
-                    resolve();
-                }
+            setTimeout(() => {
+                resolve();
             }, XBridgeSendInterval);
         });
     }
@@ -3200,20 +3296,48 @@ class Scratch3XKitHqroverBlocks {
     XSoundSensor_getVolume (args) {
         if (!this._peripheral.isConnected()) return 0;
 
-        return this._peripheral.XSoundSensor_getVolume(args.PORT);
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.volume;
+        } else {
+            block = this._peripheral.constructBlock('XSoundSensor', '', args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.volume);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XSoundSensor_getVolume(args.PORT);
     }
 
     XLightSensor_getLuminance (args) {
         if (!this._peripheral.isConnected()) return 0;
 
-        return this._peripheral.XLightSensor_getLuminance(args.PORT);
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.luminance;
+        } else {
+            block = this._peripheral.constructBlock('XLightSensor', '', args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.luminance);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XLightSensor_getLuminance(args.PORT);
     }
 
-    XButton_whenPressed (args) {
-        if (!this._peripheral.isConnected()) return false;
+    // XButton_whenPressed (args) {
+    //     if (!this._peripheral.isConnected()) return false;
 
-        return this._peripheral.XButton_isPressed(args.PORT);
-    }
+    //     return this._peripheral.XButton_isPressed(args.PORT);
+    // }
 
     XButton_isPressed (args) {
         if (!this._peripheral.isConnected()) return false;
@@ -3238,136 +3362,64 @@ class Scratch3XKitHqroverBlocks {
     XIRTracking_checkStatus (args) {
         if (!this._peripheral.isConnected()) return false;
 
-        return this._peripheral.XIRTracking_getStatus(args.PORT) == args.STATUS;
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.status == args.STATUS;
+        } else {
+            block = this._peripheral.constructBlock('XIRTracking', XIRTrackingModels.MODEL1, args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.status == args.STATUS);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XIRTracking_getStatus(args.PORT) == args.STATUS;
     }
 
     XUltrasonic_getDistance (args) {
         if (!this._peripheral.isConnected()) return 0;
 
-        return this._peripheral.XUltrasonic_getDistance(args.PORT);
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.distance;
+        } else {
+            block = this._peripheral.constructBlock('XUltrasonic', XUltrasonicModels.MODEL1, args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.distance);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XUltrasonic_getDistance(args.PORT);
     }
 
     XIRAvoiding_checkStatus (args) {
         if (!this._peripheral.isConnected()) return false;
 
-        return this._peripheral.XIRAvoiding_getStatus(args.PORT) == args.STATUS;
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.status == args.STATUS;
+        } else {
+            block = this._peripheral.constructBlock('XIRAvoiding', XIRAvoidingModels.MODEL1, args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.status == args.STATUS);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XIRAvoiding_getStatus(args.PORT) == args.STATUS;
     }
 
     ///Show
-
-    HQRLightShow_showColor (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        const rgb = cast.toRgbColorObject(args.COLOR);
-        //const hsv = Color.rgbToHsv(rgb);
-        this._peripheral.HQRLightShow_showColor(args.PORT, rgb.r, rgb.g, rgb.b);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRLightShow_showBreath (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        const rgb = cast.toRgbColorObject(args.COLOR);
-        //const hsv = Color.rgbToHsv(rgb);
-        this._peripheral.HQRLightShow_showBreath(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRLightShow_showMeteor (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        const rgb = cast.toRgbColorObject(args.COLOR);
-        //const hsv = Color.rgbToHsv(rgb);
-        this._peripheral.HQRLightShow_showMeteor(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRLightShow_clear (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        this._peripheral.HQRLightShow_clear(args.PORT);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRAudioPlayer_setNoteParameter (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        this._peripheral.HQRAudioPlayer_setNoteParameter(args.PORT, args.BEATTIME);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRAudioPlayer_playNote (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        this._peripheral.HQRAudioPlayer_playNote(args.PORT, args.NOTE);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRAudioPlayer_playMusic (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        this._peripheral.HQRAudioPlayer_playMusic(args.PORT, args.MUSIC);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRAudioPlayer_playSound (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        this._peripheral.HQRAudioPlayer_playSound(args.PORT, args.SOUND);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
-
-    HQRAudioPlayer_stop (args) {
-        if (!this._peripheral.isConnected()) return;
-
-        this._peripheral.HQRAudioPlayer_stop(args.PORT);
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, XBridgeSendInterval);
-        });
-    }
 
     XSegDisplay_showNumber (args) {
         if (!this._peripheral.isConnected()) return;
@@ -3429,6 +3481,120 @@ class Scratch3XKitHqroverBlocks {
         });
     }
 
+    HQRLightShow_showColor (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        const rgb = cast.toRgbColorObject(args.COLOR);
+        //const hsv = Color.rgbToHsv(rgb);
+        this._peripheral.HQRLightShow_showColor(args.PORT, args.INDEX, rgb.r, rgb.g, rgb.b);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRLightShow_showBreath (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        const rgb = cast.toRgbColorObject(args.COLOR);
+        //const hsv = Color.rgbToHsv(rgb);
+        this._peripheral.HQRLightShow_showBreath(args.PORT, args.INDEX, args.SPEED, rgb.r, rgb.g, rgb.b);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRLightShow_showMeteor (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        const rgb = cast.toRgbColorObject(args.COLOR);
+        //const hsv = Color.rgbToHsv(rgb);
+        this._peripheral.HQRLightShow_showMeteor(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRLightShow_clear (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRLightShow_clear(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_setNoteParameter (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_setNoteParameter(args.PORT, args.BEATTIME);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_playNote (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_playNote(args.PORT, args.NOTE, args.SCALE, args.TONE, args.BEAT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_playMusic (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_playMusic(args.PORT, args.MUSIC);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_playSound (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_playSound(args.PORT, args.SOUND);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
+    HQRAudioPlayer_stop (args) {
+        if (!this._peripheral.isConnected()) return;
+
+        this._peripheral.HQRAudioPlayer_stop(args.PORT);
+
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, XBridgeSendInterval);
+        });
+    }
+
     XVoiceBroadcast_reportObject (args) {
         if (!this._peripheral.isConnected()) return;
 
@@ -3480,7 +3646,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportAction (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ACTION);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ACTION, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3492,7 +3658,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportAlarm (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ALARM);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ALARM, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3504,7 +3670,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportScience (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.SCIENCE);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.SCIENCE, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3516,7 +3682,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportWarn (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.WARN);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.WARN, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3528,7 +3694,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportOutstar (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.OUTSTAR);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.OUTSTAR, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3540,7 +3706,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportMood (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MOOD);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MOOD, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3552,7 +3718,7 @@ class Scratch3XKitHqroverBlocks {
     XVoiceBroadcast_reportMusic (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MUSIC);
+        this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MUSIC, args.REPEAT);
 
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3662,7 +3828,21 @@ class Scratch3XKitHqroverBlocks {
     XIRReceiver_checkMessage (args) {
         if (!this._peripheral.isConnected()) return false;
 
-        return this._peripheral.XIRReceiver_checkMessage(args.PORT) == args.NUM;
+        var block = this._peripheral.findBlock(args.PORT);
+        if(block) {
+            return block.key == args.KEY;
+        } else {
+            block = this._peripheral.constructBlock('XIRReceiver', '', args.PORT);
+        }
+        return new Promise(resolve => {
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve(block.key == args.KEY);
+                }
+            }, XBridgeSendInterval);
+        });
+        //return this._peripheral.XIRReceiver_checkMessage(args.PORT) == args.KEY;
     }
 
 }
