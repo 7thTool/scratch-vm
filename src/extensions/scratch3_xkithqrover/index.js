@@ -133,30 +133,36 @@ class XKitHqrover {
             model,
             port
         };
-        this.rpc("constructBlock", params, (result) => {
+        this.send("constructBlock", params, (result) => {
             switch (type) {
                 case 'XButton': {
-                    block.status = result.status;
+                    if(result) 
+                        block.status = result.status;
                 }
                 break;
             case 'XIRReceiver': {
-                    block.key = params.key;
+                    if(result) 
+                        block.key = result.key;
                 }
                 break;
             case 'XIRTracking': {
-                    block.status = params.status;
+                    if(result) 
+                        block.status = result.status;
                 }
                 break;
             case 'XLightSensor': {
-                    block.luminance = params.luminance;
+                    if(result) 
+                     block.luminance = result.luminance;
                 }
                 break;
             case 'XSoundSensor': {
-                    block.volume = params.volume;
+                    if(result) 
+                        block.volume = result.volume;
                 }
                 break;
             case 'XUltrasonic': {
-                    block.distance = params.distance;
+                    if(result) 
+                        block.distance = result.distance;
                 }
                 break;
             }
@@ -187,7 +193,7 @@ class XKitHqrover {
             type,
             ports
         };
-        this.rpc("constructServer", params, (result) => {
+        this.send("constructServer", params, (result) => {
             //
         });
         return server;
@@ -321,19 +327,33 @@ class XKitHqrover {
     }
 
     XSoundSensor_getVolume (port) {
-        const block = this.findOrConstructBlock('XButton', XSoundSensorModels.MODEL1, port);
+        const block = this.findOrConstructBlock('XSoundSensor', '', XSoundSensorPorts.PORT1);
         if (block) {
-            return block.volume;
-        } 
-        return 0;
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XSoundSensor_getVolume", params, (result) => {
+                if(result)
+                    block.volume = result.volume;
+            });
+        }
     }
 
     XLightSensor_getLuminance (port) {
-        const block = this.findOrConstructBlock('XButton', XLightSensorModels.MODEL1, port);
+        const block = this.findOrConstructBlock(' XLightSensor', '', XLightSensorPorts.PORT1);
         if (block) {
-            return block.luminance;
-        } 
-        return 0;
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XLightSensor_getLuminance", params, (result) => {
+                if(result)
+                    block.luminance = result.luminance;
+            });
+        }
     }
 
     XButton_isPressed(port) {
@@ -347,43 +367,46 @@ class XKitHqrover {
     XIRTracking_getStatus(port) {
         const block = this.findOrConstructBlock('XIRTracking', XIRTrackingModels.MODEL1, port);
         if (block) {
-            // const params = {
-            //     type: block.type,
-            //     model: XIRTrackingModels.MODEL1,
-            //     port: block.port
-            // };
-            // this.send("XIRTracking_getStatus", params);
-            return block.status;
-        } 
-        return false;
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XIRTracking_getStatus", params, (result) => {
+                if(result)
+                    block.status = result.status;
+            });
+        }
     }
     
     XUltrasonic_getDistance(port) {
         const block = this.findOrConstructBlock('XUltrasonic', XUltrasonicModels.MODEL1, port);
         if (block) {
-            // const params = {
-            //     type: block.type,
-            //     model: XUltrasonicModels.MODEL1,
-            //     port: block.port
-            // };
-            // this.send("XUltrasonic_getDistance", params);
-            return block.distance;
-        } 
-        return false;
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XUltrasonic_getDistance", params, (result) => {
+                if(result)
+                    block.distance = result.distance;
+            });
+        }
     }
 
     XIRAvoiding_getStatus(port) {
         const block = this.findOrConstructBlock('XIRAvoiding', XIRAvoidingModels.MODEL1, port);
         if (block) {
-            // const params = {
-            //     type: block.type,
-            //     model: XIRAvoidingModels.MODEL1,
-            //     port: block.port
-            // };
-            // this.send("XIRAvoiding_getStatus", params);
-            return block.status;
-        } 
-        return false;
+            const params = {
+                type: block.type,
+                model: block.model,
+                port: block.port
+            };
+            this.send("XIRAvoiding_getStatus", params, (result) => {
+                if(result)
+                    block.status = result.status;
+            });
+        }
     }
 
     XSegDisplay_showNumber(port, num) {
@@ -515,7 +538,7 @@ class XKitHqrover {
         }
     }
 
-    HQRLightShow_clear (rgb_port) {
+    HQRLightShow_clear (rgb_port, index) {
         const block = this.findOrConstructBlock('XRGBLed', '', rgb_port);
         if (block) {
             const server = this.findOrConstructServer('HQRLightShow', rgb_port);
@@ -525,6 +548,7 @@ class XKitHqrover {
                     ports: server.ports,
                     rgb_model: block.model,
                     rgb_port,
+                    index,
                 };
                 this.send("HQRLightShow_clear", params);
             }
@@ -823,15 +847,15 @@ class XKitHqrover {
         return connected;
     }
 
-    send (method, params) {
-        return this._xbridge.rpc(method, params);
-    }
+    // send (method, params) {
+    //     return this._xbridge.rpc(method, params);
+    // }
 
     isBusy() {
         return this._busy;
     }
 
-    rpc (method, params, callback) {
+    send (method, params, callback) {
         // Set a busy flag so that while we are sending a message and waiting for
         // the response, additional messages are ignored.
         this._busy = true;
@@ -1087,11 +1111,11 @@ const XVoiceBroadcastObjects = {
 };
 
 const XVoiceBroadcastOperators = {
-    ADD: 0,
-    MINUS: 1,
-    MULTI: 2,
-    DIVIDE: 3,
-    EQUAL: 4
+    ADD: 61,
+    MINUS: 62,
+    MULTI: 63,
+    DIVIDE: 64,
+    EQUAL: 65
 };
 
 /**
@@ -1158,7 +1182,11 @@ class Scratch3XKitHqroverBlocks {
      * @return {string} - the name of this extension.
      */
     static get EXTENSION_NAME () {
-        return 'xkithqrover';
+        return formatMessage({
+            id: 'xkithqrover.hqrover',
+            default: 'hqrover',
+            description: 'xkit hqrover'
+        })
     }
 
     /**
@@ -1190,15 +1218,27 @@ class Scratch3XKitHqroverBlocks {
     get SPEEDS_MENU () {
         return [
             {
-                text: 'slow',
+                text: formatMessage({
+                    id: 'xkithqrover.Speeds.SLOW',
+                    default: 'slow',
+                    description: ''
+                }),
                 value: XKitHqroverSpeeds.SLOW
             },
             {
-                text: 'middle',
+                text: formatMessage({
+                    id: 'xkithqrover.Speeds.NORMAL',
+                    default: 'middle',
+                    description: ''
+                }),
                 value: XKitHqroverSpeeds.NORMAL
             },
             {
-                text: 'fast',
+                text: formatMessage({
+                    id: 'xkithqrover.Speeds.FAST',
+                    default: 'fast',
+                    description: ''
+                }),
                 value: XKitHqroverSpeeds.FAST
             }
         ];
@@ -1210,12 +1250,20 @@ class Scratch3XKitHqroverBlocks {
     get REPEATS_MENU () {
         return [
             {
-                text: 'not repeat',
-                value: false
+                text: formatMessage({
+                    id: 'xkithqrover.Repeat.FALSE',
+                    default: 'not repeat',
+                    description: ''
+                }),
+                value: 0
             },
             {
-                text: 'repeat',
-                value: true
+                text: formatMessage({
+                    id: 'xkithqrover.Repeat.TRUE',
+                    default: 'repeat',
+                    description: ''
+                }),
+                value: 1
             }
         ];
     }
@@ -1358,11 +1406,19 @@ class Scratch3XKitHqroverBlocks {
     get HQRCARDRIVER_DIRS_MENU () {
         return [
             {
-                text: 'forward',
+                text: formatMessage({
+                    id: 'xkithqrover.HQRCarDriver_Dirs.FORWARD',
+                    default: 'forward',
+                    description: ''
+                }),
                 value: HQRCarDriverDirs.FORWARD
             },
             {
-                text: 'backward',
+                text: formatMessage({
+                    id: 'xkithqrover.HQRCarDriver_Dirs.BACKWARD',
+                    default: 'backward',
+                    description: ''
+                }),
                 value: HQRCarDriverDirs.BACKWARD
             }
         ];
@@ -1374,19 +1430,35 @@ class Scratch3XKitHqroverBlocks {
     get HQRCARDRIVER_ACTIONS_MENU () {
         return [
             {
-                text: 'forward and turn left',
+                text: formatMessage({
+                    id: 'xkithqrover.HQRCarDriver_Actions.LEFTFORWARD',
+                    default: 'forward and turn left',
+                    description: ''
+                }),
                 value: HQRCarDriverActions.LEFTFORWARD
             },
             {
-                text: 'forward and turn right',
+                text: formatMessage({
+                    id: 'xkithqrover.HQRCarDriver_Actions.RIGHTFORWARD',
+                    default: 'forward and turn right',
+                    description: ''
+                }),
                 value: HQRCarDriverActions.RIGHTFORWARD
             },
             {
-                text: 'backward and turn left',
+                text: formatMessage({
+                    id: 'xkithqrover.HQRCarDriver_Actions.LEFTBACKWARD',
+                    default: 'backward and turn left',
+                    description: ''
+                }),
                 value: HQRCarDriverActions.LEFTBACKWARD
             },
             {
-                text: 'backward and turn right',
+                text: formatMessage({
+                    id: 'xkithqrover.HQRCarDriver_Actions.RIGHTBACKWARD',
+                    default: 'backward and turn right',
+                    description: ''
+                }),
                 value: HQRCarDriverActions.RIGHTBACKWARD
             }
         ];
@@ -1450,7 +1522,11 @@ class Scratch3XKitHqroverBlocks {
     get XRGBLED_INDEXS_MENU () {
         return [
             {
-                text: 'all',
+                text: formatMessage({
+                    id: 'xkithqrover.XRGBLed_Indexs.ALL',
+                    default: 'all',
+                    description: ''
+                }),
                 value: 0
             },
             {
@@ -1468,6 +1544,14 @@ class Scratch3XKitHqroverBlocks {
             {
                 text: '4',
                 value: 4
+            },
+            {
+                text: '5',
+                value: 5
+            },
+            {
+                text: '6',
+                value: 6
             }
         ];
     }
@@ -1546,15 +1630,27 @@ class Scratch3XKitHqroverBlocks {
     get XBUZZER_SCALES_MENU () {
         return [
             {
-                text: 'low',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Scales.LOW',
+                    default: 'low',
+                    description: ''
+                }),
                 value: 0
             },
             {
-                text: 'medium',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Scales.MEDIUM',
+                    default: 'medium',
+                    description: ''
+                }),
                 value: 1
             },
             {
-                text: 'high',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Scales.HIGH',
+                    default: 'high',
+                    description: ''
+                }),
                 value: 2
             }
         ];
@@ -1630,23 +1726,43 @@ class Scratch3XKitHqroverBlocks {
     get XBUZZER_MUSICS_MENU () {
         return [
             {
-                text: 'happy brithday',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Musics.HAPPYBIRTHDAY',
+                    default: 'happy brithday',
+                    description: ''
+                }),
                 value: XBuzzerMusics.HAPPYBIRTHDAY
             },
             {
-                text: 'little star',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Musics.LITTLESTAR',
+                    default: 'little star',
+                    description: ''
+                }),
                 value: XBuzzerMusics.LITTLESTAR
             },
             {
-                text: 'song of joy',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Musics.SONGOFJOY',
+                    default: 'song of joy',
+                    description: ''
+                }),
                 value: XBuzzerMusics.SONGOFJOY
             },
             {
-                text: 'little apple',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Musics.LITTLEAPPLE',
+                    default: 'little apple',
+                    description: ''
+                }),
                 value: XBuzzerMusics.LITTLEAPPLE
             },
             {
-                text: 'go to school',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Musics.GOTOSCHOOL',
+                    default: 'go to school',
+                    description: ''
+                }),
                 value: XBuzzerMusics.GOTOSCHOOL
             }
         ];
@@ -1658,19 +1774,35 @@ class Scratch3XKitHqroverBlocks {
     get XBUZZER_SOUNDS_MENU () {
         return [
             {
-                text: 'ambulance',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Sounds.AMBULANCE',
+                    default: 'ambulance',
+                    description: ''
+                }),
                 value: XBuzzerSounds.AMBULANCE
             },
             {
-                text: 'fire engine',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Sounds.FIRE_ENGINE',
+                    default: 'fire engine',
+                    description: ''
+                }),
                 value: XBuzzerSounds.FIRE_ENGINE
             },
             {
-                text: 'police wagon',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Sounds.POLICE_WAGON',
+                    default: 'police wagon',
+                    description: ''
+                }),
                 value: XBuzzerSounds.POLICE_WAGON
             },
             {
-                text: 'car whistling',
+                text: formatMessage({
+                    id: 'xkithqrover.XBuzzer_Sounds.CAR_WHISTLING',
+                    default: 'car whistling',
+                    description: ''
+                }),
                 value: XBuzzerSounds.CAR_WHISTLING
             }
         ];
@@ -1682,35 +1814,67 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_OBJECTS_MENU () {
         return [
             {
-                text: 'value',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.VALUE',
+                    default: 'value',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.VALUE
             },
             {
-                text: 'light',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.LIGHT',
+                    default: 'light',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.LIGHT
             },
             {
-                text: 'sound',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.SOUND',
+                    default: 'sound',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.SOUND
             },
             {
-                text: 'temperature',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.TEMPERATURE',
+                    default: 'temperature',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.TEMPERATURE
             },
             {
-                text: 'humidity',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.HUMIDITY',
+                    default: 'humidity',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.HUMIDITY
             },
             {
-                text: 'distance',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.DISTANCE',
+                    default: 'distance',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.DISTANCE
             },
             {
-                text: 'speed',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.SPEED',
+                    default: 'speed',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.SPEED
             },
             {
-                text: 'status',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Objects.STATUS',
+                    default: 'status',
+                    description: ''
+                }),
                 value: XVoiceBroadcastObjects.STATUS
             }
         ];
@@ -1746,23 +1910,43 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_ACTIONS_MENU () {
         return [
             {
-                text: 'tick tock',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.70',
+                    default: 'tick tock',
+                    description: ''
+                }),
                 value: 70
             },
             {
-                text: 'whole bell',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.71',
+                    default: 'whole bell',
+                    description: ''
+                }),
                 value: 71
             },
             {
-                text: 'jo',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.72',
+                    default: 'jo',
+                    description: ''
+                }),
                 value: 72
             },
             {
-                text: 'jojo',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.73',
+                    default: 'jojo',
+                    description: ''
+                }),
                 value: 73
             },
             {
-                text: 'jojojo',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.74',
+                    default: 'jojojo',
+                    description: ''
+                }),
                 value: 74
             }
         ];
@@ -1774,27 +1958,51 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_ALARMS_MENU () {
         return [
             {
-                text: 'police',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.78',
+                    default: 'police',
+                    description: ''
+                }),
                 value: 78
             },
             {
-                text: 'fire engine',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.79',
+                    default: 'fire engine',
+                    description: ''
+                }),
                 value: 79
             },
             {
-                text: 'ambulance',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.80',
+                    default: 'ambulance',
+                    description: ''
+                }),
                 value: 80
             },
             {
-                text: 'bell',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.81',
+                    default: 'bell',
+                    description: ''
+                }),
                 value: 81
             },
             {
-                text: 'guard',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.82',
+                    default: 'guard',
+                    description: ''
+                }),
                 value: 82
             },
             {
-                text: 'red alert',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.83',
+                    default: 'red alert',
+                    description: ''
+                }),
                 value: 83
             }
         ];
@@ -1806,23 +2014,43 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_SCIENCES_MENU () {
         return [
             {
-                text: 'machine run',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.86',
+                    default: 'machine run',
+                    description: ''
+                }),
                 value: 86
             },
             {
-                text: 'robot move',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.87',
+                    default: 'robot move',
+                    description: ''
+                }),
                 value: 87
             },
             {
-                text: 'servo motor',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.88',
+                    default: 'servo motor',
+                    description: ''
+                }),
                 value: 88
             },
             {
-                text: 'light saber',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.89',
+                    default: 'light saber',
+                    description: ''
+                }),
                 value: 89
             },
             {
-                text: 'flight',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.90',
+                    default: 'flight',
+                    description: ''
+                }),
                 value: 90
             }
         ];
@@ -1834,27 +2062,51 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_WARNS_MENU () {
         return [
             {
-                text: 'punched-card',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.94',
+                    default: 'punched-card',
+                    description: ''
+                }),
                 value: 94
             },
             {
-                text: 'ting ting',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.95',
+                    default: 'ting ting',
+                    description: ''
+                }),
                 value: 95
             },
             {
-                text: 'water-drop',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.96',
+                    default: 'water-drop',
+                    description: ''
+                }),
                 value: 96
             },
             {
-                text: 'dang',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.97',
+                    default: 'dang',
+                    description: ''
+                }),
                 value: 97
             },
             {
-                text: 'telephone ringer',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.98',
+                    default: 'telephone ringer',
+                    description: ''
+                }),
                 value: 98
             },
             {
-                text: 'take a picture',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.99',
+                    default: 'take a picture',
+                    description: ''
+                }),
                 value: 99
             }
         ];
@@ -1866,31 +2118,59 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_OUTSTARS_MENU () {
         return [
             {
-                text: 'electric wave',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.102',
+                    default: 'electric wave',
+                    description: ''
+                }),
                 value: 102
             },
             {
-                text: 'speak',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.103',
+                    default: 'speak',
+                    description: ''
+                }),
                 value: 103
             },
             {
-                text: 'signal',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.104',
+                    default: 'signal',
+                    description: ''
+                }),
                 value: 104
             },
             {
-                text: 'spaceship landed',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.105',
+                    default: 'spaceship landed',
+                    description: ''
+                }),
                 value: 105
             },
             {
-                text: 'call',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.106',
+                    default: 'call',
+                    description: ''
+                }),
                 value: 106
             },
             {
-                text: 'hiahia',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.107',
+                    default: 'hiahia',
+                    description: ''
+                }),
                 value: 107
             },
             {
-                text: 'warn',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.108',
+                    default: 'warn',
+                    description: ''
+                }),
                 value: 108
             }
         ];
@@ -1902,15 +2182,27 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_MOODS_MENU () {
         return [
             {
-                text: 'cheer',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.110',
+                    default: 'cheer',
+                    description: ''
+                }),
                 value: 110
             },
             {
-                text: 'surprise',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.111',
+                    default: 'surprise',
+                    description: ''
+                }),
                 value: 111
             },
             {
-                text: 'happy',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.112',
+                    default: 'happy',
+                    description: ''
+                }),
                 value: 112
             }
         ];
@@ -1922,23 +2214,43 @@ class Scratch3XKitHqroverBlocks {
     get XVOICEBROADCAST_SOUND_MUSICS_MENU () {
         return [
             {
-                text: 'summer',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.118',
+                    default: 'summer',
+                    description: ''
+                }),
                 value: 118
             },
             {
-                text: 'always with me',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.119',
+                    default: 'always with me',
+                    description: ''
+                }),
                 value: 119
             },
             {
-                text: 'jingle bells',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.120',
+                    default: 'jingle bells',
+                    description: ''
+                }),
                 value: 120
             },
             {
-                text: 'waiting for the wind',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.121',
+                    default: 'waiting for the wind',
+                    description: ''
+                }),
                 value: 121
             },
             {
-                text: 'doraemon',
+                text: formatMessage({
+                    id: 'xkithqrover.XVoiceBroadcast_Whichs.122',
+                    default: 'doraemon',
+                    description: ''
+                }),
                 value: 122
             }
         ];
@@ -1950,27 +2262,51 @@ class Scratch3XKitHqroverBlocks {
     get XLEDMATRIX_EFFECTS_MENU () {
         return [
             {
-                text: 'static',
-                value: XLEDMatrixEffects.GREATER
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Effects.STATIC',
+                    default: 'static',
+                    description: ''
+                }),
+                value: XLEDMatrixEffects.STATIC
             },
             {
-                text: 'up',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Effects.ROLL_UP',
+                    default: 'roll up',
+                    description: ''
+                }),
                 value: XLEDMatrixEffects.ROLL_UP
             },
             {
-                text: 'down',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Effects.ROLL_DWON',
+                    default: 'roll down',
+                    description: ''
+                }),
                 value: XLEDMatrixEffects.ROLL_DWON
             },
             {
-                text: 'left',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Effects.ROLL_LEFT',
+                    default: 'roll left',
+                    description: ''
+                }),
                 value: XLEDMatrixEffects.ROLL_LEFT
             },
             {
-                text: 'right',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Effects.ROLL_RIGHT',
+                    default: 'roll right',
+                    description: ''
+                }),
                 value: XLEDMatrixEffects.ROLL_RIGHT
             },
             {
-                text: 'flicker',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Effects.FLICKER',
+                    default: 'flicker',
+                    description: ''
+                }),
                 value: XLEDMatrixEffects.FLICKER
             }
         ];
@@ -1982,39 +2318,75 @@ class Scratch3XKitHqroverBlocks {
     get XLEDMATRIX_EMOTS_MENU () {
         return [
             {
-                text: 'cool',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.COOL',
+                    default: 'cool',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.COOL
             },
             {
-                text: 'smile',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.SMILE',
+                    default: 'smile',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.SMILE
             },
             {
-                text: 'laugh',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.LAUGH',
+                    default: 'laugh',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.LAUGH
             },
             {
-                text: 'grievance',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.GRIEVANCE',
+                    default: 'grievance',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.GRIEVANCE
             },
             {
-                text: 'angry',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.ANGRY',
+                    default: 'angry',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.ANGRY
             },
             {
-                text: 'anger',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.ANGER',
+                    default: 'anger',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.ANGER
             },
             {
-                text: 'cry',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.CRY',
+                    default: 'cry',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.CRY
             },
             {
-                text: 'naughty',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.NAUGHTY',
+                    default: 'naughty',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.NAUGHTY
             },
             {
-                text: 'love',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Emots.LOVE',
+                    default: 'love',
+                    description: ''
+                }),
                 value: XLEDMatrixEmots.LOVE
             }
         ];
@@ -2026,63 +2398,123 @@ class Scratch3XKitHqroverBlocks {
     get XLEDMATRIX_FLAGS_MENU () {
         return [
             {
-                text: 'X',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.X',
+                    default: 'X',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.X
             },
             {
-                text: 'rectangle',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.RECTANGLE',
+                    default: 'rectangle',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.RECTANGLE
             },
             {
-                text: 'triganle',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.TRIGANLE',
+                    default: 'triganle',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.TRIGANLE
             },
             {
-                text: 'circle',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.CIRCLE',
+                    default: 'circle',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.CIRCLE
             },
             {
-                text: 'up',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.UP',
+                    default: 'up',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.UP
             },
             {
-                text: 'down',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.DOWN',
+                    default: 'down',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.DOWN
             },
             {
-                text: 'left',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.LEFT',
+                    default: 'left',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.LEFT
             },
             {
-                text: 'right',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.RIGHT',
+                    default: 'right',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.RIGHT
             },
             {
-                text: 'stop',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.STOP',
+                    default: 'stop',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.STOP
             },
             {
-                text: 'forward and turn left',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.FORWARD_AND_TURN_LEFT',
+                    default: 'forward and turn left',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.FORWARD_AND_TURN_LEFT
             },
             {
-                text: 'forward and turn right',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.FORWARD_AND_TURN_RIGHT',
+                    default: 'forward and turn right',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.FORWARD_AND_TURN_RIGHT
             },
             {
-                text: 'backward and turn left',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.BACKWARD_AND_TURN_LEFT',
+                    default: 'backward and turn left',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.BACKWARD_AND_TURN_LEFT
             },
             {
-                text: 'backward and turn right',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.BACKWARD_AND_TURN_RIGHT',
+                    default: 'backward and turn right',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.BACKWARD_AND_TURN_RIGHT
             },
             {
-                text: 'cup',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.CUP',
+                    default: 'cup',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.CUP
             },
             {
-                text: 'banner',
+                text: formatMessage({
+                    id: 'xkithqrover.XLEDMatrix_Flags.BANNER',
+                    default: 'banner',
+                    description: ''
+                }),
                 value: XLEDMatrixFlags.BANNER
             }
         ];
@@ -2144,48 +2576,6 @@ class Scratch3XKitHqroverBlocks {
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [
-                /*{
-                    opcode: 'constructBlock',
-                    text: formatMessage({
-                        id: 'xkithqrover.constructBlock',
-                        default: '[PORT] connect block [TYPE] model [MODEL]',
-                        description: 'connect type and model block with port'
-                    }),
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        PORT: {
-                            type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
-                        },
-                        TYPE: {
-                            type: ArgumentType.STRING,
-                            menu: 'types',
-                            defaultValue: XKitHqroverTypes.TYPE1
-                        },
-                        MODEL: {
-                            type: ArgumentType.STRING,
-                            menu: 'models',
-                            defaultValue: XKitHqroverModels.MODEL1
-                        }
-                    }
-                },
-                {
-                    opcode: 'XButton_whenPressed',
-                    text: formatMessage({
-                        id: 'xkithqrover.XButton_whenPressed',
-                        default: 'when [BTN] button pressed',
-                        description: 'when the selected button on the hqrover is pressed'
-                    }),
-                    blockType: BlockType.HAT,
-                    arguments: {
-                        BTN: {
-                            type: ArgumentType.STRING,
-                            menu: 'xbutton_ports',
-                            defaultValue: XButtonPorts.PORT1
-                        }
-                    }
-                },*/
                 {
                     opcode: 'HQRCarDriver_move',
                     text: formatMessage({
@@ -2388,7 +2778,7 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'XSegDisplay_showNumber',
                     text: formatMessage({
                         id: 'xkithqrover.XSegDisplay_showNumber',
-                        default: 'segment LED[PORT] show number [NUM]',
+                        default: 'segment LED[PORT] show number[NUM]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -2450,7 +2840,7 @@ class Scratch3XKitHqroverBlocks {
                         },
                         SEG: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'A'
+                            defaultValue: 'a'
                         }
                     }
                 },
@@ -2475,7 +2865,7 @@ class Scratch3XKitHqroverBlocks {
                         },
                         SEG: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'A'
+                            defaultValue: 'a'
                         }
                     }
                 },
@@ -2523,7 +2913,7 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'HQRLightShow_showBreath',
                     text: formatMessage({
                         id: 'xkithqrover.HQRLightShow_showBreath',
-                        default: 'RGB LED[PORT] light[INDEX] speed[SPEED] color[COLOR]',
+                        default: 'RGB LED[PORT] breath[INDEX] speed[SPEED] color[COLOR]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -2536,7 +2926,7 @@ class Scratch3XKitHqroverBlocks {
                         INDEX: {
                             type: ArgumentType.NUMBER,
                             menu: 'rgb_indexs',
-                            defaultValue: XKitHqroverPorts.PORT1
+                            defaultValue: 0
                         },
                         SPEED: {
                             type: ArgumentType.NUMBER,
@@ -2576,7 +2966,7 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'HQRLightShow_clear',
                     text: formatMessage({
                         id: 'xkithqrover.HQRLightShow_clear',
-                        default: 'RGB LED[PORT] clear',
+                        default: 'RGB LED[PORT] clear[INDEX]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -2585,6 +2975,11 @@ class Scratch3XKitHqroverBlocks {
                             type: ArgumentType.STRING,
                             menu: 'rgb_ports',
                             defaultValue: XRGBLedPorts.PORT1
+                        },
+                        INDEX: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'rgb_indexs',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2629,7 +3024,7 @@ class Scratch3XKitHqroverBlocks {
                         },
                         SCALE: {
                             type: ArgumentType.NUMBER,
-                            menu: 'xbuzzer_scales',
+                            menu: 'XBuzzer_Scales',
                             defaultValue: 0
                         },
                         TONE: {
@@ -2660,7 +3055,7 @@ class Scratch3XKitHqroverBlocks {
                         },
                         MUSIC: {
                             type: ArgumentType.NUMBER,
-                            menu: 'xbuzzer_musics',
+                            menu: 'XBuzzer_Musics',
                             defaultValue: XBuzzerMusics.HAPPYBIRTHDAY
                         }
                     }
@@ -2824,9 +3219,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 70
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2850,9 +3245,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 78
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2876,9 +3271,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 86
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2902,9 +3297,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 94
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2928,9 +3323,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 102
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2954,9 +3349,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 110
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -2980,9 +3375,9 @@ class Scratch3XKitHqroverBlocks {
                             defaultValue: 118
                         },
                         REPEAT: {
-                            type: ArgumentType.BOOLEAN,
-                            //menu: 'repeats',
-                            defaultValue: false
+                            type: ArgumentType.NUMBER,
+                            menu: 'repeats',
+                            defaultValue: 0
                         }
                     }
                 },
@@ -3142,8 +3537,8 @@ class Scratch3XKitHqroverBlocks {
                     arguments: {
                         PORT: {
                             type: ArgumentType.STRING,
-                            menu: 'ports',
-                            defaultValue: XKitHqroverPorts.PORT1
+                            menu: 'irr_ports',
+                            defaultValue: XIRReceiverPorts.PORT1
                         },
                         KEY: {
                             type: ArgumentType.STRING,
@@ -3188,10 +3583,10 @@ class Scratch3XKitHqroverBlocks {
                 rgb_indexs: this.XRGBLED_INDEXS_MENU,
                 xbuzzer_ports: this.XBUZZER_PORTS_MENU,
                 xbuzzer_notes: this.XBUZZER_NOTES_MENU,
-                xbuzzer_scales: this.XBUZZER_SCALES_MENU,
+                XBuzzer_Scales: this.XBUZZER_SCALES_MENU,
                 xbuzzer_tones: this.XBUZZER_TONES_MENU,
                 xbuzzer_beats: this.XBUZZER_BEATS_MENU,
-                xbuzzer_musics: this.XBUZZER_MUSICS_MENU,
+                XBuzzer_Musics: this.XBUZZER_MUSICS_MENU,
                 xbuzzer_sounds: this.XBUZZER_SOUNDS_MENU,
                 xvoicebroadcast_objects: this.XVOICEBROADCAST_OBJECTS_MENU,
                 xvoicebroadcast_operators: this.XVOICEBROADCAST_OPERATORS_MENU,
@@ -3235,8 +3630,11 @@ class Scratch3XKitHqroverBlocks {
         }
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3247,8 +3645,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRCarDriver_turn(args.ACTION, args.SPEED, args.ANGLE);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3259,8 +3660,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRCarDriver_stop();
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3271,8 +3675,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRCarDriver_autoLineTracking(args.IRT_PORT, args.SPEED);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3283,8 +3690,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRCarDriver_autoObstacleAvoidance(args.ULS_PORT, args.SPEED);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3298,7 +3708,8 @@ class Scratch3XKitHqroverBlocks {
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
-            return block.volume;
+            //return block.volume;
+            this._peripheral.XSoundSensor_getVolume(args.PORT);
         } else {
             block = this._peripheral.constructBlock('XSoundSensor', '', args.PORT);
         }
@@ -3310,7 +3721,6 @@ class Scratch3XKitHqroverBlocks {
                 }
             }, XBridgeSendInterval);
         });
-        //return this._peripheral.XSoundSensor_getVolume(args.PORT);
     }
 
     XLightSensor_getLuminance (args) {
@@ -3318,7 +3728,8 @@ class Scratch3XKitHqroverBlocks {
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
-            return block.luminance;
+            //return block.luminance;
+            this._peripheral.XLightSensor_getLuminance(args.PORT);
         } else {
             block = this._peripheral.constructBlock('XLightSensor', '', args.PORT);
         }
@@ -3330,7 +3741,6 @@ class Scratch3XKitHqroverBlocks {
                 }
             }, XBridgeSendInterval);
         });
-        //return this._peripheral.XLightSensor_getLuminance(args.PORT);
     }
 
     // XButton_whenPressed (args) {
@@ -3364,7 +3774,8 @@ class Scratch3XKitHqroverBlocks {
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
-            return block.status == args.STATUS;
+            //return block.status == args.STATUS;
+            this._peripheral.XIRTracking_getStatus(args.PORT);
         } else {
             block = this._peripheral.constructBlock('XIRTracking', XIRTrackingModels.MODEL1, args.PORT);
         }
@@ -3384,7 +3795,8 @@ class Scratch3XKitHqroverBlocks {
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
-            return block.distance;
+            //return block.distance;
+            this._peripheral.XUltrasonic_getDistance(args.PORT);
         } else {
             block = this._peripheral.constructBlock('XUltrasonic', XUltrasonicModels.MODEL1, args.PORT);
         }
@@ -3392,7 +3804,7 @@ class Scratch3XKitHqroverBlocks {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
-                    resolve(block.distance);
+                    resolve(block.distance/10);
                 }
             }, XBridgeSendInterval);
         });
@@ -3404,7 +3816,8 @@ class Scratch3XKitHqroverBlocks {
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
-            return block.status == args.STATUS;
+            //return block.status == args.STATUS;
+            this._peripheral.XIRAvoiding_getStatus(args.PORT);
         } else {
             block = this._peripheral.constructBlock('XIRAvoiding', XIRAvoidingModels.MODEL1, args.PORT);
         }
@@ -3427,8 +3840,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XSegDisplay_showNumber(args.PORT, args.NUM);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3439,8 +3855,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XSegDisplay_showCharacter(args.PORT, args.INDEX, args.CHAR);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3451,8 +3870,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XSegDisplay_showSegment(args.PORT, args.INDEX, args.SEG);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3463,8 +3885,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XSegDisplay_clearSegment(args.PORT, args.INDEX, args.SEG);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3475,8 +3900,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XSegDisplay_clear(args.PORT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3489,8 +3917,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRLightShow_showColor(args.PORT, args.INDEX, rgb.r, rgb.g, rgb.b);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3503,8 +3934,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRLightShow_showBreath(args.PORT, args.INDEX, args.SPEED, rgb.r, rgb.g, rgb.b);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3517,8 +3951,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRLightShow_showMeteor(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3526,11 +3963,14 @@ class Scratch3XKitHqroverBlocks {
     HQRLightShow_clear (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.HQRLightShow_clear(args.PORT);
+        this._peripheral.HQRLightShow_clear(args.PORT, args.INDEX);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3538,11 +3978,21 @@ class Scratch3XKitHqroverBlocks {
     HQRAudioPlayer_setNoteParameter (args) {
         if (!this._peripheral.isConnected()) return;
 
-        this._peripheral.HQRAudioPlayer_setNoteParameter(args.PORT, args.BEATTIME);
+        //0.1秒就是100ms, 2秒就是2000，对应beatTime分别就是10和200, 然后转换为一个字节
+        if(args.BEATTIME < 0.1) {
+            args.BEATTIME = 0.1;
+        }
+        else if(args.BEATTIME > 2.0) {
+            args.BEATTIME = 2.0;
+        }
+        this._peripheral.HQRAudioPlayer_setNoteParameter(args.PORT, args.BEATTIME*100);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3553,8 +4003,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRAudioPlayer_playNote(args.PORT, args.NOTE, args.SCALE, args.TONE, args.BEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3565,8 +4018,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRAudioPlayer_playMusic(args.PORT, args.MUSIC);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3577,8 +4033,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRAudioPlayer_playSound(args.PORT, args.SOUND);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3589,8 +4048,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.HQRAudioPlayer_stop(args.PORT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3601,8 +4063,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportObject(args.PORT, args.OBJECT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3613,8 +4078,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportTime(args.PORT, args.HOUR, args.MINUTE, args.SECOND);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3625,8 +4093,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportDate(args.PORT, args.YEAR, args.MONTH, args.DAY);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3637,8 +4108,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportOperator(args.PORT, args.OPERATOR);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3649,8 +4123,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ACTION, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3661,8 +4138,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ALARM, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3673,8 +4153,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.SCIENCE, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3685,8 +4168,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.WARN, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3697,8 +4183,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.OUTSTAR, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3709,8 +4198,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MOOD, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3721,8 +4213,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MUSIC, args.REPEAT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3733,8 +4228,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XVoiceBroadcast_stop(args.PORT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3745,8 +4243,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XLEDMatrix_setEffect(args.PORT, args.EFFECT, args.SPEED);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3757,8 +4258,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XLEDMatrix_showNumber(args.PORT, args.NUM);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3769,8 +4273,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XLEDMatrix_showNumberPair(args.PORT, args.A, args.B);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3781,8 +4288,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XLEDMatrix_showEmoticon(args.PORT, args.EMOT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3793,8 +4303,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XLEDMatrix_showFlag(args.PORT, args.FLAG);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3805,8 +4318,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XLEDMatrix_clear(args.PORT);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3819,8 +4335,11 @@ class Scratch3XKitHqroverBlocks {
         this._peripheral.XIRReceiver_enableLongPress(args.PORT, args.KEY);
 
         return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
+            this._intervalID = window.setInterval(() => {
+                if(!this._peripheral.isBusy()) {
+                    window.clearInterval(this._intervalID);
+                    resolve();
+                }
             }, XBridgeSendInterval);
         });
     }
@@ -3828,9 +4347,48 @@ class Scratch3XKitHqroverBlocks {
     XIRReceiver_checkMessage (args) {
         if (!this._peripheral.isConnected()) return false;
 
+        switch (args.KEY) {
+            case 'A':
+                args.KEY = '10';
+                break;
+            case 'B':
+                args.KEY = '11';
+                break;
+            case 'C':
+                args.KEY = '12';
+                break;
+            case 'D':
+                args.KEY = '13';
+                break;
+            case 'E':
+                args.KEY = '14';
+                break;
+            case 'F':
+                args.KEY = '15';
+                break;
+            case '↑':
+                args.KEY = '16';
+                break;
+            case '↓':
+                args.KEY = '17';
+                break;
+            case '←':
+                args.KEY = '18';
+                break;
+            case '→':
+                args.KEY = '19';
+                break;
+            case 'OK':
+                args.KEY = '20';
+                break;
+            default:
+                break;
+        }
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
-            return block.key == args.KEY;
+            var ret = block.key == args.KEY;
+            block.key = BYTE_INVALID_VALUE;
+            return ret;
         } else {
             block = this._peripheral.constructBlock('XIRReceiver', '', args.PORT);
         }
@@ -3838,7 +4396,9 @@ class Scratch3XKitHqroverBlocks {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
-                    resolve(block.key == args.KEY);
+                    var ret = block.key == args.KEY;
+                    block.key = BYTE_INVALID_VALUE;
+                    resolve(ret);
                 }
             }, XBridgeSendInterval);
         });
