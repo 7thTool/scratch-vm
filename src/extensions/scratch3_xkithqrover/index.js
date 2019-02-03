@@ -20,7 +20,7 @@ const XBridgeTimeout = 4500; // TODO: might need tweaking based on how long the 
  * A time interval to wait (in milliseconds) while a block that sends a XBridge message is running.
  * @type {number}
  */
-const XBridgeSendInterval = 100;
+const XBridgeSendInterval = 20;
 
 const BYTE_INVALID_VALUE = 0xff;
 const SHORT_INVALID_VALUE = 0xffff;
@@ -75,6 +75,8 @@ class XKitHqrover {
          */
         this._busy = false;
 
+        this._request = null;
+
         /**
          * ID for a timeout which is used to clear the busy flag if it has been
          * true for a long time.
@@ -89,6 +91,10 @@ class XKitHqrover {
     clearAll() {
         this._blocks = {};
         this._services = {};
+        this._request = null;
+        this._busy = false;
+        if(this._timeoutID)
+            window.clearInterval(this._timeoutID);
     }
 
     isOnBoardBlock(port) {
@@ -138,31 +144,37 @@ class XKitHqrover {
                 case 'XButton': {
                     if(result) 
                         block.status = result.status;
+                    this._request.resolve(block.status);
                 }
                 break;
             case 'XIRReceiver': {
                     if(result) 
                         block.key = result.key;
+                    this._request.resolve(block.key);
                 }
                 break;
             case 'XIRTracking': {
                     if(result) 
                         block.status = result.status;
+                    this._request.resolve(block.status);
                 }
                 break;
             case 'XLightSensor': {
                     if(result) 
-                     block.luminance = result.luminance;
+                        block.luminance = result.luminance;
+                    this._request.resolve(block.luminance);
                 }
                 break;
             case 'XSoundSensor': {
                     if(result) 
                         block.volume = result.volume;
+                    this._request.resolve(block.volume);
                 }
                 break;
             case 'XUltrasonic': {
                     if(result) 
                         block.distance = result.distance;
+                    this._request.resolve(block.distance);
                 }
                 break;
             }
@@ -225,7 +237,10 @@ class XKitHqrover {
                     ddm_port: block.port,
                     speed
                 };
-                this.send("HQRCarDriver_forward", params);
+                this.send("HQRCarDriver_forward", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -242,7 +257,10 @@ class XKitHqrover {
                     ddm_port: block.port,
                     speed
                 };
-                this.send("HQRCarDriver_backward", params);
+                this.send("HQRCarDriver_backward", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -261,7 +279,10 @@ class XKitHqrover {
                     speed,
                     angle
                 };
-                this.send("HQRCarDriver_turn", params);
+                this.send("HQRCarDriver_turn", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -277,7 +298,10 @@ class XKitHqrover {
                     ddm_model: block.model,
                     ddm_port: block.port
                 };
-                this.send("HQRCarDriver_stop", params);
+                this.send("HQRCarDriver_stop", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -298,7 +322,10 @@ class XKitHqrover {
                         irt_port,
                         speed
                     };
-                    this.send("HQRCarDriver_autoLineTracking", params);
+                    this.send("HQRCarDriver_autoLineTracking", params, (result) => {
+                        if(this._request)
+                            this._request.resolve();
+                    });
                 }
             }
         }
@@ -320,7 +347,10 @@ class XKitHqrover {
                         uls_port,
                         speed
                     };
-                    this.send("HQRCarDriver_autoObstacleAvoidance", params);
+                    this.send("HQRCarDriver_autoObstacleAvoidance", params, (result) => {
+                        if(this._request)
+                            this._request.resolve();
+                    });
                 }
             }
         }
@@ -335,8 +365,10 @@ class XKitHqrover {
                 port: block.port
             };
             this.send("XSoundSensor_getVolume", params, (result) => {
-                if(result)
+                if(result) 
                     block.volume = result.volume;
+                if(this._request)
+                    this._request.resolve(block.volume);
             });
         }
     }
@@ -352,6 +384,8 @@ class XKitHqrover {
             this.send("XLightSensor_getLuminance", params, (result) => {
                 if(result)
                     block.luminance = result.luminance;
+                if(this._request)
+                    this._request.resolve(block.luminance);
             });
         }
     }
@@ -375,6 +409,8 @@ class XKitHqrover {
             this.send("XIRTracking_getStatus", params, (result) => {
                 if(result)
                     block.status = result.status;
+                if(this._request)
+                    this._request.resolve(block.status);
             });
         }
     }
@@ -390,6 +426,8 @@ class XKitHqrover {
             this.send("XUltrasonic_getDistance", params, (result) => {
                 if(result)
                     block.distance = result.distance;
+                if(this._request)
+                    this._request.resolve(block.distance);
             });
         }
     }
@@ -405,6 +443,8 @@ class XKitHqrover {
             this.send("XIRAvoiding_getStatus", params, (result) => {
                 if(result)
                     block.status = result.status;
+                if(this._request)
+                    this._request.resolve(block.status);
             });
         }
     }
@@ -418,7 +458,9 @@ class XKitHqrover {
                 port: block.port,
                 num
             };
-            this.send("XSegDisplay_showNumber", params);
+            this.send("XSegDisplay_showNumber", params, (result) => {
+                this._request.resolve();
+            });
         }
     }
 
@@ -432,7 +474,10 @@ class XKitHqrover {
                 index,
                 char
             };
-            this.send("XSegDisplay_showCharacter", params);
+            this.send("XSegDisplay_showCharacter", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -446,7 +491,10 @@ class XKitHqrover {
                 index,
                 seg
             };
-            this.send("XSegDisplay_showSegment", params);
+            this.send("XSegDisplay_showSegment", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -460,7 +508,10 @@ class XKitHqrover {
                 index,
                 seg
             };
-            this.send("XSegDisplay_clearSegment", params);
+            this.send("XSegDisplay_clearSegment", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -472,7 +523,10 @@ class XKitHqrover {
                 model: block.model,
                 port: block.port
             };
-            this.send("XSegDisplay_clear", params);
+            this.send("XSegDisplay_clear", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
     
@@ -492,7 +546,10 @@ class XKitHqrover {
                     blue,
                     clearOthers: true
                 };
-                this.send("HQRLightShow_showColor", params);
+                this.send("HQRLightShow_showColor", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -513,7 +570,10 @@ class XKitHqrover {
                     green,
                     blue
                 };
-                this.send("HQRLightShow_showBreath", params);
+                this.send("HQRLightShow_showBreath", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -533,7 +593,10 @@ class XKitHqrover {
                     green,
                     blue
                 };
-                this.send("HQRLightShow_showMeteor", params);
+                this.send("HQRLightShow_showMeteor", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -550,7 +613,10 @@ class XKitHqrover {
                     rgb_port,
                     index,
                 };
-                this.send("HQRLightShow_clear", params);
+                this.send("HQRLightShow_clear", params, (result) => {
+                    if(this._request)
+                        this._request.resolve();
+                });
             }
         }
     }
@@ -563,7 +629,10 @@ class XKitHqrover {
                 ports: server.ports,
                 beatTime
             };
-            this.send("HQRAudioPlayer_setNoteParameter", params); 
+            this.send("HQRAudioPlayer_setNoteParameter", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -578,7 +647,10 @@ class XKitHqrover {
                 tone,
                 beat
             };
-            this.send("HQRAudioPlayer_playNote", params); 
+            this.send("HQRAudioPlayer_playNote", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -590,7 +662,10 @@ class XKitHqrover {
                 ports: server.ports,
                 music
             };
-            this.send("HQRAudioPlayer_playMusic", params); 
+            this.send("HQRAudioPlayer_playMusic", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -602,7 +677,10 @@ class XKitHqrover {
                 ports: server.ports,
                 sound
             };
-            this.send("HQRAudioPlayer_playSound", params); 
+            this.send("HQRAudioPlayer_playSound", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -613,7 +691,10 @@ class XKitHqrover {
                 type: server.type,
                 ports: server.ports
             };
-            this.send("HQRAudioPlayer_stop", params); 
+            this.send("HQRAudioPlayer_stop", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
     
@@ -627,7 +708,10 @@ class XKitHqrover {
                 index,
                 value
             };
-            this.send("XVoiceBroadcast_reportObject", params);
+            this.send("XVoiceBroadcast_reportObject", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -642,7 +726,10 @@ class XKitHqrover {
                 minute,
                 second
             };
-            this.send("XVoiceBroadcast_reportTime", params);
+            this.send("XVoiceBroadcast_reportTime", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -657,7 +744,10 @@ class XKitHqrover {
                 month,
                 day
             };
-            this.send("XVoiceBroadcast_reportDate", params);
+            this.send("XVoiceBroadcast_reportDate", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -670,7 +760,10 @@ class XKitHqrover {
                 port: block.port,
                 operator
             };
-            this.send("XVoiceBroadcast_reportOperator", params);
+            this.send("XVoiceBroadcast_reportOperator", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -684,7 +777,10 @@ class XKitHqrover {
                 which,
                 repeat
             };
-            this.send("XVoiceBroadcast_reportSound", params);
+            this.send("XVoiceBroadcast_reportSound", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -696,7 +792,10 @@ class XKitHqrover {
                 model: block.model,
                 port: block.port
             };
-            this.send("XVoiceBroadcast_stop", params);
+            this.send("XVoiceBroadcast_stop", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -710,7 +809,10 @@ class XKitHqrover {
                 effect,
                 speed
             };
-            this.send("XLEDMatrix_showNumber", params);
+            this.send("XLEDMatrix_showNumber", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -723,7 +825,10 @@ class XKitHqrover {
                 port: block.port,
                 num
             };
-            this.send("XLEDMatrix_showNumber", params);
+            this.send("XLEDMatrix_showNumber", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -737,7 +842,10 @@ class XKitHqrover {
                 A,
                 B
             };
-            this.send("XLEDMatrix_showNumberPair", params);
+            this.send("XLEDMatrix_showNumberPair", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -750,7 +858,10 @@ class XKitHqrover {
                 port: block.port,
                 emot
             };
-            this.send("XLEDMatrix_showEmoticon", params);
+            this.send("XLEDMatrix_showEmoticon", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -763,7 +874,10 @@ class XKitHqrover {
                 port: block.port,
                 flag
             };
-            this.send("XLEDMatrix_showFlag", params);
+            this.send("XLEDMatrix_showFlag", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -775,7 +889,10 @@ class XKitHqrover {
                 model: block.model,
                 port: block.port
             };
-            this.send("XLEDMatrix_clear", params);
+            this.send("XLEDMatrix_clear", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -788,7 +905,10 @@ class XKitHqrover {
                 port: block.port,
                 key
             };
-            this.send("XIRReceiver_enableLongPress", params);
+            this.send("XIRReceiver_enableLongPress", params, (result) => {
+                if(this._request)
+                    this._request.resolve();
+            });
         }
     }
 
@@ -829,7 +949,6 @@ class XKitHqrover {
      */
     disconnect () {
         this.clearAll();
-        window.clearInterval(this._timeoutID);
         if (this._xbridge) {
             this._xbridge.disconnect();
         }
@@ -1465,7 +1584,7 @@ class Scratch3XKitHqroverBlocks {
     }
 
     /**
-     * @return {array} - text and values for each xsegdisplay segment menu element
+     * @return {array} - text and values for each xsegdisplay index menu element
      */
     get XSEGDISPLAY_INDEXS_MENU () {
         return [
@@ -1484,6 +1603,46 @@ class Scratch3XKitHqroverBlocks {
             {
                 text: '4',
                 value: 4
+            }
+        ];
+    }
+
+    /**
+     * @return {array} - text and values for each xsegdisplay segment menu element
+     */
+    get XSEGDISPLAY_SEGMENTS_MENU () {
+        return [
+            {
+                text: 'a',
+                value: 'a'
+            },
+            {
+                text: 'b',
+                value: 'b'
+            },
+            {
+                text: 'c',
+                value: 'c'
+            },
+            {
+                text: 'd',
+                value: 'd'
+            },
+            {
+                text: 'e',
+                value: 'e'
+            },
+            {
+                text: 'f',
+                value: 'f'
+            },
+            {
+                text: 'g',
+                value: 'g'
+            },
+            {
+                text: '.',
+                value: '.'
             }
         ];
     }
@@ -2823,7 +2982,7 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'XSegDisplay_showSegment',
                     text: formatMessage({
                         id: 'xkithqrover.XSegDisplay_showSegment',
-                        default: 'segment LED[PORT] show[INDEX] segment[SEG](abcdefg.)',
+                        default: 'segment LED[PORT] show[INDEX] segment[SEG]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -2840,6 +2999,7 @@ class Scratch3XKitHqroverBlocks {
                         },
                         SEG: {
                             type: ArgumentType.STRING,
+                            menu: 'xsegdisplay_segments',
                             defaultValue: 'a'
                         }
                     }
@@ -2848,7 +3008,7 @@ class Scratch3XKitHqroverBlocks {
                     opcode: 'XSegDisplay_clearSegment',
                     text: formatMessage({
                         id: 'xkithqrover.XSegDisplay_clearSegment',
-                        default: 'segment LED[PORT] clear[INDEX] segment[SEG](abcdefg.)',
+                        default: 'segment LED[PORT] clear[INDEX] segment[SEG]',
                         description: ''
                     }),
                     blockType: BlockType.COMMAND,
@@ -2865,6 +3025,7 @@ class Scratch3XKitHqroverBlocks {
                         },
                         SEG: {
                             type: ArgumentType.STRING,
+                            menu: 'xsegdisplay_segments',
                             defaultValue: 'a'
                         }
                     }
@@ -3579,6 +3740,7 @@ class Scratch3XKitHqroverBlocks {
                 hqrcardriver_dirs: this.HQRCARDRIVER_DIRS_MENU,
                 hqrcardriver_actions: this.HQRCARDRIVER_ACTIONS_MENU,
                 xsegdisplay_indexs: this.XSEGDISPLAY_INDEXS_MENU,
+                xsegdisplay_segments: this.XSEGDISPLAY_SEGMENTS_MENU,
                 rgb_ports: this.XRGBLED_PORTS_MENU,
                 rgb_indexs: this.XRGBLED_INDEXS_MENU,
                 xbuzzer_ports: this.XBUZZER_PORTS_MENU,
@@ -3623,80 +3785,105 @@ class Scratch3XKitHqroverBlocks {
     HQRCarDriver_move (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         if(args.DIR==HQRCarDriverDirs.FORWARD) {
             this._peripheral.HQRCarDriver_forward(args.SPEED);
         } else {
             this._peripheral.HQRCarDriver_backward(args.SPEED);
         }
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRCarDriver_turn (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRCarDriver_turn(args.ACTION, args.SPEED, args.ANGLE);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRCarDriver_stop (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRCarDriver_stop();
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
     
     HQRCarDriver_autoLineTracking(args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRCarDriver_autoLineTracking(args.IRT_PORT, args.SPEED);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRCarDriver_autoObstacleAvoidance(args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRCarDriver_autoObstacleAvoidance(args.ULS_PORT, args.SPEED);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     //Servo 不要
@@ -3706,6 +3893,10 @@ class Scratch3XKitHqroverBlocks {
     XSoundSensor_getVolume (args) {
         if (!this._peripheral.isConnected()) return 0;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
             //return block.volume;
@@ -3713,18 +3904,24 @@ class Scratch3XKitHqroverBlocks {
         } else {
             block = this._peripheral.constructBlock('XSoundSensor', '', args.PORT);
         }
-        return new Promise(resolve => {
+
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve(block.volume);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLightSensor_getLuminance (args) {
         if (!this._peripheral.isConnected()) return 0;
+
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
@@ -3733,14 +3930,16 @@ class Scratch3XKitHqroverBlocks {
         } else {
             block = this._peripheral.constructBlock('XLightSensor', '', args.PORT);
         }
-        return new Promise(resolve => {
+
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve(block.luminance);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     // XButton_whenPressed (args) {
@@ -3756,21 +3955,31 @@ class Scratch3XKitHqroverBlocks {
         if(block) {
             return block.status == 1;
         } else {
+            const promise = new Promise((resolve, reject) => {
+                this._peripheral._request = {resolve, reject};
+            });
+
             block = this._peripheral.constructBlock('XButton', '', args.PORT);
+
+            return promise;
         }
-        return new Promise(resolve => {
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve(block.status == 1);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
         //return this._peripheral.XButton_isPressed(args.PORT);
     }
 
     XIRTracking_checkStatus (args) {
         if (!this._peripheral.isConnected()) return false;
+
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
@@ -3779,19 +3988,25 @@ class Scratch3XKitHqroverBlocks {
         } else {
             block = this._peripheral.constructBlock('XIRTracking', XIRTrackingModels.MODEL1, args.PORT);
         }
-        return new Promise(resolve => {
+
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve(block.status == args.STATUS);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
         //return this._peripheral.XIRTracking_getStatus(args.PORT) == args.STATUS;
     }
 
     XUltrasonic_getDistance (args) {
         if (!this._peripheral.isConnected()) return 0;
+
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
@@ -3800,19 +4015,25 @@ class Scratch3XKitHqroverBlocks {
         } else {
             block = this._peripheral.constructBlock('XUltrasonic', XUltrasonicModels.MODEL1, args.PORT);
         }
-        return new Promise(resolve => {
+
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve(block.distance/10);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
         //return this._peripheral.XUltrasonic_getDistance(args.PORT);
     }
 
     XIRAvoiding_checkStatus (args) {
         if (!this._peripheral.isConnected()) return false;
+
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
 
         var block = this._peripheral.findBlock(args.PORT);
         if(block) {
@@ -3821,14 +4042,16 @@ class Scratch3XKitHqroverBlocks {
         } else {
             block = this._peripheral.constructBlock('XIRAvoiding', XIRAvoidingModels.MODEL1, args.PORT);
         }
-        return new Promise(resolve => {
+
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve(block.status == args.STATUS);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
         //return this._peripheral.XIRAvoiding_getStatus(args.PORT) == args.STATUS;
     }
 
@@ -3837,146 +4060,195 @@ class Scratch3XKitHqroverBlocks {
     XSegDisplay_showNumber (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XSegDisplay_showNumber(args.PORT, args.NUM);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XSegDisplay_showCharacter (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XSegDisplay_showCharacter(args.PORT, args.INDEX, args.CHAR);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XSegDisplay_showSegment (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XSegDisplay_showSegment(args.PORT, args.INDEX, args.SEG);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XSegDisplay_clearSegment (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XSegDisplay_clearSegment(args.PORT, args.INDEX, args.SEG);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XSegDisplay_clear (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XSegDisplay_clear(args.PORT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRLightShow_showColor (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         const rgb = cast.toRgbColorObject(args.COLOR);
         //const hsv = Color.rgbToHsv(rgb);
         this._peripheral.HQRLightShow_showColor(args.PORT, args.INDEX, rgb.r, rgb.g, rgb.b);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRLightShow_showBreath (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         const rgb = cast.toRgbColorObject(args.COLOR);
         //const hsv = Color.rgbToHsv(rgb);
         this._peripheral.HQRLightShow_showBreath(args.PORT, args.INDEX, args.SPEED, rgb.r, rgb.g, rgb.b);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRLightShow_showMeteor (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         const rgb = cast.toRgbColorObject(args.COLOR);
         //const hsv = Color.rgbToHsv(rgb);
         this._peripheral.HQRLightShow_showMeteor(args.PORT, args.SPEED, rgb.r, rgb.g, rgb.b);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRLightShow_clear (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRLightShow_clear(args.PORT, args.INDEX);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRAudioPlayer_setNoteParameter (args) {
         if (!this._peripheral.isConnected()) return;
+
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
 
         //0.1秒就是100ms, 2秒就是2000，对应beatTime分别就是10和200, 然后转换为一个字节
         if(args.BEATTIME < 0.1) {
@@ -3987,344 +4259,455 @@ class Scratch3XKitHqroverBlocks {
         }
         this._peripheral.HQRAudioPlayer_setNoteParameter(args.PORT, args.BEATTIME*100);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRAudioPlayer_playNote (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRAudioPlayer_playNote(args.PORT, args.NOTE, args.SCALE, args.TONE, args.BEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRAudioPlayer_playMusic (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRAudioPlayer_playMusic(args.PORT, args.MUSIC);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRAudioPlayer_playSound (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRAudioPlayer_playSound(args.PORT, args.SOUND);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     HQRAudioPlayer_stop (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.HQRAudioPlayer_stop(args.PORT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportObject (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportObject(args.PORT, args.OBJECT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportTime (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportTime(args.PORT, args.HOUR, args.MINUTE, args.SECOND);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportDate (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportDate(args.PORT, args.YEAR, args.MONTH, args.DAY);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportOperator (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportOperator(args.PORT, args.OPERATOR);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportAction (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ACTION, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportAlarm (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.ALARM, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportScience (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.SCIENCE, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportWarn (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.WARN, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportOutstar (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.OUTSTAR, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportMood (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MOOD, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_reportMusic (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_reportSond(args.PORT, args.MUSIC, args.REPEAT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XVoiceBroadcast_stop (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XVoiceBroadcast_stop(args.PORT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLEDMatrix_setEffect (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XLEDMatrix_setEffect(args.PORT, args.EFFECT, args.SPEED);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLEDMatrix_showNumber (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XLEDMatrix_showNumber(args.PORT, args.NUM);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLEDMatrix_showNumberPair (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XLEDMatrix_showNumberPair(args.PORT, args.A, args.B);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLEDMatrix_showEmoticon (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XLEDMatrix_showEmoticon(args.PORT, args.EMOT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLEDMatrix_showFlag (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XLEDMatrix_showFlag(args.PORT, args.FLAG);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XLEDMatrix_clear (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XLEDMatrix_clear(args.PORT);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     //Message
@@ -4332,16 +4715,21 @@ class Scratch3XKitHqroverBlocks {
     XIRReceiver_enableLongPress (args) {
         if (!this._peripheral.isConnected()) return;
 
+        const promise = new Promise((resolve, reject) => {
+            this._peripheral._request = {resolve, reject};
+        });
+
         this._peripheral.XIRReceiver_enableLongPress(args.PORT, args.KEY);
 
-        return new Promise(resolve => {
+        return promise;
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
                     resolve();
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
     }
 
     XIRReceiver_checkMessage (args) {
@@ -4390,9 +4778,15 @@ class Scratch3XKitHqroverBlocks {
             block.key = BYTE_INVALID_VALUE;
             return ret;
         } else {
+            const promise = new Promise((resolve, reject) => {
+                this._peripheral._request = {resolve, reject};
+            });
+
             block = this._peripheral.constructBlock('XIRReceiver', '', args.PORT);
+
+            return promise;
         }
-        return new Promise(resolve => {
+        /*return new Promise(resolve => {
             this._intervalID = window.setInterval(() => {
                 if(!this._peripheral.isBusy()) {
                     window.clearInterval(this._intervalID);
@@ -4401,7 +4795,7 @@ class Scratch3XKitHqroverBlocks {
                     resolve(ret);
                 }
             }, XBridgeSendInterval);
-        });
+        });*/
         //return this._peripheral.XIRReceiver_checkMessage(args.PORT) == args.KEY;
     }
 
