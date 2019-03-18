@@ -1,6 +1,7 @@
 const log = require('../util/log');
 const MathUtil = require('../util/math-util');
 const StringUtil = require('../util/string-util');
+const Cast = require('../util/cast');
 const Clone = require('../util/clone');
 const Target = require('../engine/target');
 const StageLayering = require('../engine/stage-layering');
@@ -840,6 +841,7 @@ class RenderedTarget extends Target {
      * @return {boolean} True iff touching a clone of the sprite.
      */
     isTouchingSprite (spriteName) {
+        spriteName = Cast.toString(spriteName);
         const firstClone = this.runtime.getSpriteTargetByName(spriteName);
         if (!firstClone || !this.renderer) {
             return false;
@@ -1021,8 +1023,6 @@ class RenderedTarget extends Target {
         newClone._edgeActivatedHatValues = Clone.simple(this._edgeActivatedHatValues);
         newClone.initDrawable(StageLayering.SPRITE_LAYER);
         newClone.updateAllDrawableProperties();
-        // Place behind the current target.
-        newClone.goBehindOther(this);
         return newClone;
     }
 
@@ -1046,7 +1046,6 @@ class RenderedTarget extends Target {
             newTarget.effects = JSON.parse(JSON.stringify(this.effects));
             newTarget.variables = this.duplicateVariables(newTarget.blocks);
             newTarget.updateAllDrawableProperties();
-            newTarget.goBehindOther(this);
             return newTarget;
         });
     }
